@@ -32,44 +32,6 @@ FINALMSGS               MOVE.B  #14, D0
                              
 *-------------------------------
 
-; a whole bunch of stufff
-
-*------------output--------------
-
-
-
-*--------------------------------
-    
-
-*------------WELCOME MESSAGES--------------
-CR                      EQU     $0D
-LF                      EQU     $0A
-
-WELCOME                 DC.B    'WELCOME to the 68k dissasembler!',CR,LF,0
-                        DC.B    'You will prompted to enter a starting and ending location for theprogram code you would like dissasembled.',CR,LF,0
-                        DC.B    'Please enter these values in hexadecimal!',CR, LF,0
-                        DC.B    'Ending location should be greater than starting location, and neither should be longer in length than 6 characters. You do not need to add $ or 0x',CR,LF,0
-                        DC.B    'EXAMPLE: 6006',CR,LF,0
-                
-STARTLOCMSG             DC.B    'Address of starting location: $',0 
-
-ENDLOCMSG               DC.B    CR,LF,'Address of ending location: $',0
-
-NOTES                   DC.B    CR,LF,'LOADING...',CR,LF,0
-                        DC.B    'PS. Only one pages worth will display at a time, press ENTER to load another page.',CR,LF,0
-                        DC.B    'And anything that cannot be decoded will be displayed as "100 DATA $WXYZ"', CR,LF,0              
-*------------------------------------------
-*-----------------VARIABLES----------------
-STARTLOC                DS.L    1
-ENDLOC                  DS.L    1
-*-----------------INPUT_STRING_TO_HEX_VARIABLES----------------
-INPUT_HEXSTR            DS.L    1    ; longword of storage space for the input string to be converted
-HEX_RESULT              DS.L    1    ; longword of storage for the resulting hexadecimal value
-TRUNCATEDHEX            DS.B    1    ; byte of storage to indicate if the input string was truncated
-INVALIDHEX              DS.B    1    ; byte of storage to indicate if the input string contained an invalid character
-HEXSTR_ARRAY            DC.B    '0123456789ABCDEFabcdef',0  ;a byte array with all the valid hexadecimal characters
-HEXVALUE_ARRAY          DC.B    '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,10,11,12,13,14,15,0'
-*------------------------------------------
 *-----------------INPUT_STRING_TO_HEX-------------------------
 HEXCONVERTOR            MOVEM.L D0-D2/A0-A3,-(SP)
                         MOVE.B  #$0000,TRUNCATEDHEX
@@ -110,7 +72,85 @@ ERROR_HEXRESULT         MOVE.B  #$0001,HEX_RESULT
 STOREDHEX               MOVE.L  D0,HEX_RESULT
                         MOVEM.L (SP)+,D0-D2/A0-A3
                         RTS
-*-----------------INPUT_STRING_TO_HEX-------------------------                        
+*-----------------INPUT_STRING_TO_HEX-------------------------          
+
+
+ADRCHECK                MOVE.L  STARTLOC, D0
+                        MOVE.L  ENDLOC, D1
+                        CMP.L   D0, D1
+                        BGT     VALIDADDRESS  ;startloc is less than end loc
+                        
+INVALIDADDRESS          LEA     INVADRMSG, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        BRA     PRINTINPUTMSG   ;restart the program
+
+VALIDADDRESS
+
+
+;;;;;;;stuffy stuff
+
+
+
+DISSDONE                LEA     RESTARTQUESTION, A1
+                        MOVE.B  #18, D0
+                        TRAP    #15
+                        
+                        CMP.B   #0, D1
+                        BEQ     PRINTINPUTMSG       ;user entered 0, restart the system
+                        
+                        LEA     EXITITING, A1       ;user entered 1, end program
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        BRA     DONE               
+                                                                
+*------------output--------------
+
+
+
+*--------------------------------
+    
+
+*------------WELCOME MESSAGES--------------
+CR                      EQU     $0D
+LF                      EQU     $0A
+
+WELCOME                 DC.B    'WELCOME to the 68k dissasembler!',CR,LF,0
+                        DC.B    'You will prompted to enter a starting and ending location for theprogram code you would like dissasembled.',CR,LF,0
+                        DC.B    'Please enter these values in hexadecimal!',CR,LF,0
+                        DC.B    'Ending location should be greater than starting location, and neither should be longer in length than 6 characters. You do not need to add $ or 0x',CR,LF,0
+                        DC.B    'EXAMPLE: 6006',CR,LF,0
+                
+STARTLOCMSG             DC.B    'Address of starting location: $',0 
+
+ENDLOCMSG               DC.B    CR,LF,'Address of ending location: $',0
+
+NOTES                   DC.B    CR,LF,'LOADING...',CR,LF,0
+                        DC.B    'PS. Only one pages worth will display at a time, press ENTER to load another page.',CR,LF,0
+                        DC.B    'And anything that cannot be decoded will be displayed as "100 DATA $WXYZ"',CR,LF,0              
+*----------------MESSAGES----------------------
+INVADRMSG               DC.B    'The address entered are invalid.',CR,LF,0
+                        DC.B    'Please try again!',CR,LF,0
+                        
+RESTARTQUESTION         DC.B    'Would you like to disassemble another program?',CR,LF,0
+                        DC.B    'If yes, please enter 1.',CR,LF,0
+                        DC.B    'If no, please enter 0.',CR,LF,0
+                        
+EXITITING               DC.B    'Thank you for using our disassembler! Goodbye...',CR,LF,0
+
+*-----------------VARIABLES----------------
+STARTLOC                DS.L    1    ;longword of storage space for the address of the starting location for disassembly
+ENDLOC                  DS.L    1    ;longword of storage space for the address of the ending location for disassembly
+
+*-----------------INPUT_STRING_TO_HEX_VARIABLES----------------
+INPUT_HEXSTR            DS.L    1    ; longword of storage space for the input string to be converted
+HEX_RESULT              DS.L    1    ; longword of storage for the resulting hexadecimal value
+TRUNCATEDHEX            DS.B    1    ; byte of storage to indicate if the input string was truncated
+INVALIDHEX              DS.B    1    ; byte of storage to indicate if the input string contained an invalid character
+HEXSTR_ARRAY            DC.B    '0123456789ABCDEFabcdef',0  ;a byte array with all the valid hexadecimal characters
+HEXVALUE_ARRAY          DC.B    '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,10,11,12,13,14,15,0'
+*------------------------------------------
+              
 
 DONE
                         END    START        ; last line of source
@@ -121,6 +161,7 @@ DONE
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 
