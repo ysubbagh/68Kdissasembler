@@ -18,7 +18,7 @@ PRINTINPUTMSG           LEA     WELCOME, A1
                         MOVE.B  #2, D0
 INPUTSTART              LEA     STARTLOC, A1
                         TRAP    #15
-                        MOVE.E  A1, INPUT_HEXSTR  ; MOVE the Al to ARG_HEXSTR
+                        MOVE.L  A1, INPUT_HEXSTR  ; MOVE the Al to ARG_HEXSTR
                         JSR     HEXCONVERTOR           
                         LEA     ENDLOCMSG, A1
                         MOVE.B  #14, D0
@@ -45,7 +45,7 @@ LAST_INPUTCHAR          CMP.L   #0,(A0)+
                         BNE     LAST_INPUTCHAR
                         ADD.L   #$FFFFFFFF,A0
                         CMP.L   A1,A0
-                        BLE     ERROR_HEX_RESULT
+                        BLE     ERROR_HEXRESULT
 HEXCONVET_LOOP          ADDQ    #4,D2
                         CMP.L   #32,D2
                         BEQ     ERROR_TRUNCATEDHEX
