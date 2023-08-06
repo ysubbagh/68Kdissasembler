@@ -3,7 +3,7 @@
 * Written by : Yasmine Subbagh, Slava Arovina, Chin Cheung Lam
 * Date       : 
 *   Created:        06/27/23
-*   Last Modified:  07/12/23
+*   Last Modified:  08/06/23
 * Description: 68k Assembly Dissasembler
 *-----------------------------------------------------------
 
@@ -153,68 +153,153 @@ MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4,
                         BRA     OPCODETABLE
                         
 *-----------------OP CODE TABLE COMPARE-------------------------                           
-OPCODETABLE             CMP.B   #%1001,D2
-                        BEQ     OPSUB    
+OPCODETABLE             CMP.B   #%1110,D2      ; Check for opcodes starting with 1110 (LS, AS, ROR, etc.)
+                        BEQ     OPEOR
+                        
+                        CMP.B   #%1101,D2      ; Check for opcodes starting with 1101 (MOVEQ, ADDA, etc.)
+                        BEQ     OPBITCLEAR
 
-                        CMP.B   #%0100, D2
+                        CMP.B   #%1100,D2      ; Check for opcodes starting with 1100 (AND, OR, LEA, etc.)
+                        BEQ     OPSHIFTROT
+
+                        CMP.B   #%1011,D2      ; Check for opcodes starting with 1011 (MOVEM)
+                        BEQ     OPMOVEQ
+
+                        CMP.B   #%1001,D2      ; Check for opcodes starting with 1001 (SUB)
                         BEQ     OPLEA
-
-                        CMP.B   #%1100, D2
+                        
+                        CMP.B   #%1000,D2      ; Check for opcodes starting with 1000 (OR)
                         BEQ     OPAND
 
-                        CMP.B   #%1000, D2
-                        BEQ     OPOR    
+                        CMP.B   #%0111,D2      ; Check for opcodes starting with 0111 (MOVEA, MOVE)
+                        BEQ     OPOR
+
+                        CMP.B   #%0110,D2      ; Check for opcodes starting with 0110 (NEG)
+                        BEQ     OPADDQ
+
+                        CMP.B   #%0101,D2      ; Check for opcodes starting with 0101 (JSR)
+                        BEQ     OPNEG
                         
-                        CMP.B   #%1110, D2
-                        BEQ     OPSHIFTROT
+                        CMP.B   #%0100,D2      ; Check for opcodes starting with 0100 (BGT)
+                        BEQ     OPADDA
+
+                        CMP.B   #%0011,D2      ; Check for opcodes starting with 0011 (BRA, BEQ)
+                        BEQ     OPMOVE
+
+                        CMP.B   #%0010,D2      ; Check for opcodes starting with 0010 (NOT)
+                        BEQ     OPMOVEM
+
+                        CMP.B   #%0001,D2      ; Check for opcodes starting with 0001 (SUBQ)
+                        BEQ     OPJSR
+
+                        CMP.B   #%0000,D2      ; Check for opcodes starting with 0000 (BRA, BGT, BLE)
+                        BEQ     OPSUB
                         
-                        CMP.B   #%1110, D2
-                        BEQ     OPSHIFTROT
+                        BRA     OPINVALID
                         
 *---------------------------------------------------------------  
-OPNOP 
- 
+OPNOP
+        LEA     OP_NOP_LABEL, A1
+        BRA     OUTPUT_OPCODE
+OPEOR
+        LEA     OP_EOR_LABEL, A1
+        BRA     OUTPUT_OPCODE
+OPBITCLEAR
+        LEA     OP_BITCLEAR_LABEL, A1
+        BRA     OUTPUT_OPCODE
 OPSUB
-
+        LEA     OP_SUB_LABEL, A1
+        BRA     OUTPUT_OPCODE
 OPLEA
-
+        LEA     OP_LEA_LABEL, A1
+        BRA     OUTPUT_OPCODE
 OPAND
-
+        LEA     OP_AND_LABEL, A1
+        BRA     OUTPUT_OPCODE
+        
 OPOR
+        LEA     OP_OR_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPNOT
+        LEA     OP_NOT_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPSHIFTROT
+        LEA     OP_SHIFTROT_LABEL, A1
+        BRA     OUTPUT_OPCODE
+
+OPADDQ
+        LEA     OP_ADDQ_LABEL, A1
+        BRA     OUTPUT_OPCODE
+
+OPNEG
+        LEA     OP_NEG_LABEL, A1
+        BRA     OUTPUT_OPCODE
+
+OPADDA
+        LEA     OP_ADDA_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPASL
+        LEA     OP_ASL_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPASR
+        LEA     OP_ASR_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPROL
+        LEA     OP_ROL_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPROR
+        LEA     OP_ROR_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPJSR
+        LEA     OP_JSR_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPRTS
+        LEA     OP_RTS_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPMOVE
+        LEA     OP_MOVE_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPMOVEA
+        LEA     OP_MOVEA_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPMOVEQ
+        LEA     OP_MOVEQ_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPMOVEM
+        LEA     OP_MOVEM_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPBRA
+        LEA     OP_BRA_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPBGT
+        LEA     OP_BGT_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPBLE
+        LEA     OP_BLE_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPBEQ
+        LEA     OP_BEQ_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 OPINVALID
+        LEA     OP_INVALID_LABEL, A1
+        BRA     OUTPUT_OPCODE
 
 
 
@@ -232,7 +317,10 @@ DISSDONE                LEA     RESTARTQUESTION, A1
                                                                 
 *------------output--------------
 
-
+OUTPUT_OPCODE
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        BRA     DIASSEMBLE
 
 *--------------------------------
     
@@ -280,33 +368,33 @@ WORD_STRING             DC.B '.W',0
 LONG_STRING             DC.B '.L',0
 
 INVALID_OPCODE_STRING   DC.B '??(DATA)??',0
-CMP_OPCODE_STRING       DC.B 'CMP',0
-ADD_OPCODE_STRING       DC.B 'ADD',0
-ADDA_OPCODE_STRING      DC.B 'ADDA',0
-ADDQ_OPCODE_STRING      DC.B 'ADDQ',0
-SUB_OPCODE_STRING       DC.B 'SUB',0
-AND_OPCODE_STRING       DC.B 'AND',0
-OR_OPCODE_STRING        DC.B 'OR',0
-MOVEB_OPCODE_STRING     DC.B 'MOVE.B',0
-MOVEQ_OPCODE_STRING     DC.B 'MOVEQ',0
-MOVEW_OPCODE_STRING     DC.B 'MOVE.W',0
-MOVEAW_OPCODE_STRING    DC.B 'MOVEA.W',0
-MOVEL_OPCODE_STRING     DC.B 'MOVE.L',0
-MOVEAL_OPCODE_STRING    DC.B 'MOVEA.L',0
-BRA_OPCODE_STRING       DC.B 'BRA',0
-BEQ_OPCODE_STRING       DC.B 'BEQ',0
-BGT_OPCODE_STRING       DC.B 'BGT',0
-BLE_OPCODE_STRING       DC.B 'BLE',0
-LEA_OPCODE_STRING       DC.B 'LEA',0
-NOTB_OPCODE_STRING      DC.B 'NOT.B',0
-NOTW_OPCODE_STRING      DC.B 'NOT.W',0
-NOTL_OPCODE_STRING      DC.B 'NOT.L',0
-JSR_OPCODE_STRING       DC.B 'JSR',0
-RTS_OPCODE_STRING       DC.B 'RTS',0
-NOP_OPCODE_STRING       DC.B 'NOP',0
-LS_OPCODE_STRING        DC.B 'LS',0
-AS_OPCODE_STRING        DC.B 'AS',0
-RO_OPCODE_STRING        DC.B 'RO',0
+OP_NOP_LABEL            DC.B    'NOP',0
+OP_EOR_LABEL            DC.B    'EOR',0
+OP_BITCLEAR_LABEL       DC.B    'BITCLEAR',0
+OP_SUB_LABEL            DC.B    'SUB',0
+OP_LEA_LABEL            DC.B    'LEA',0
+OP_AND_LABEL            DC.B    'AND',0
+OP_OR_LABEL             DC.B    'OR',0
+OP_NOT_LABEL            DC.B    'NOT',0
+OP_SHIFTROT_LABEL       DC.B    'SHIFT/ROT',0
+OP_ADDQ_LABEL           DC.B    'ADDQ',0
+OP_NEG_LABEL            DC.B    'NEG',0
+OP_ADDA_LABEL           DC.B    'ADDA',0
+OP_ASL_LABEL            DC.B    'ASL',0
+OP_ASR_LABEL            DC.B    'ASR',0
+OP_ROL_LABEL            DC.B    'ROL',0
+OP_ROR_LABEL            DC.B    'ROR',0
+OP_JSR_LABEL            DC.B    'JSR',0
+OP_RTS_LABEL            DC.B    'RTS',0
+OP_MOVE_LABEL           DC.B    'MOVE',0
+OP_MOVEA_LABEL          DC.B    'MOVEA',0
+OP_MOVEQ_LABEL          DC.B    'MOVEQ',0
+OP_MOVEM_LABEL          DC.B    'MOVEM',0
+OP_BRA_LABEL            DC.B    'BRA',0
+OP_BGT_LABEL            DC.B    'BGT',0
+OP_BLE_LABEL            DC.B    'BLE',0
+OP_BEQ_LABEL            DC.B    'BEQ',0
+OP_INVALID_LABEL        DC.B    'INVALID OPCODE',0
 
 
 D_Mode          DC.B    'D', 0  * DATA REGISTER DIRECT 
@@ -322,14 +410,10 @@ Invalid_EA      DC.B    '??(EA)??', 0
 
 
 
-
-
-
-
-
 *-----------------VARIABLES----------------
 STARTLOC                DS.L    1    ;longword of storage space for the address of the starting location for disassembly
 ENDLOC                  DS.L    1    ;longword of storage space for the address of the ending location for disassembly
+
 
 *-----------------INPUT_STRING_TO_HEX_VARIABLES----------------
 INPUT_HEXSTR            DS.L    1    ; longword of storage space for the input string to be converted
@@ -338,11 +422,12 @@ TRUNCATEDHEX            DS.B    1    ; byte of storage to indicate if the input 
 INVALIDHEX              DS.B    1    ; byte of storage to indicate if the input string contained an invalid character
 HEXSTR_ARRAY            DC.B    '0123456789ABCDEFabcdef',0  ;a byte array with all the valid hexadecimal characters
 HEXVALUE_ARRAY          DC.B    '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,10,11,12,13,14,15,0'
-*------------------------------------------
-              
 
+*------------------------------------------
 DONE
                         END    START        ; last line of source
+
+
 
 
 *~Font name~Courier New~
