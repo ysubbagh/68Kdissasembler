@@ -19,7 +19,7 @@ PRINTINPUTMSG           LEA     WELCOME, A1
 INPUTSTART              LEA     STARTLOC, A1
                         TRAP    #15
                         JSR     VALID_INPUT_SIZE              ; IF USER ACCIDENTALLY ENTER INVALID SIZE FOR THE INPUT (NEW)
-                        BEQ     PRINTINPUTMSG                 ; LOOP BACK TO ASK USER INPUT AGAIN (NEW)
+                        ;BEQ     PRINTINPUTMSG                 ; LOOP BACK TO ASK USER INPUT AGAIN (NEW)
                         MOVE.L  A1, INPUT_HEXSTR        ; MOVE the Al to INPUT_HEXSTR convertor register (NEW)
                         JSR     HEXCONVERTOR            ;Converting the hex value from string (NEW)
                         MOVE.L  HEX_RESULT, STARTLOC    ; Store HEX_RESULT to STARTLOC (NEW)
@@ -111,8 +111,7 @@ ADRCHECK                MOVE.L  STARTLOC, D0
 *-----------------CHECK_INPUT_IF_VALID-------------------------                        
 VALID_INPUT_SIZE        CMP.L   #0, D1              ; CHECK IF IT IS AN EMPTY INPUT
                         BEQ     EMPTY_INPUT         ; JSR TO EMPTY_INPUT
-                        CMP.L   #4, D1              ; CHECK IF IT IS 4 DIGITS
-                        BLT     LESS_THAN_FOUR      ; INVALID INPUT
+                                                    ; I deleted LESS_THAN_FOUR check.
                         RTS                        
                         
 EMPTY_INPUT             LEA     EMPTYMSG,A1         
@@ -120,7 +119,7 @@ EMPTY_INPUT             LEA     EMPTYMSG,A1
                         TRAP    #15
                         CMP.L   #$FF00, D1          ; Clear the screen TASK 11 
                         BRA     PRINTINPUTMSG       ; Continue
-LESS_THAN_FOUR          JSR     INVALIDADDRESS      ; INVALID
+
                                                                                                           
                         
 INVALIDADDRESS          LEA     INVADRMSG, A1
@@ -133,177 +132,683 @@ VALIDADDRESS
 
 *---------load each location in
                         MOVE.W  ENDLOC, (A2)
-LOADSTARTADRDRESS       MOVE.W  STARTLOC, (A1)
+LOADSTARTADRDRESS       MOVE.W  STARTLOC, (A1)         ;Is this for current address?
+                        MOVE.W  CURR_ADDRESS, (A1)  ;Is this for current address?(NEW+CHECK!!!!)James
+
 
 DIASSEMBLE              CLR     D1
                         CLR     D2
                         MOVE.W  (A1),D1             ;unchanged
                         MOVE.W  D1, D2              ;modifyable                    
                                  
-CHECKFORNOP             CMP.W   #$4E71, D2
-                        BEQ     OPNOP
+;CHECKFORNOP             CMP.W   #$4E71, D2
+;                        BEQ     OPNOP
                         
-CHECKFORRTS             CMP.W   #$4E75, D2
-                        BEQ     OPRTS
+;CHECKFORRTS             CMP.W   #$4E75, D2
+;                        BEQ     OPRTS
 
-GETFIRST8               LSR.W   #4, D2
+GETFIRST8               
+                        LSR.W   #4, D2
 
 
 MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4, moved into last byte
                         BRA     OPCODETABLE
                         
 *-----------------OP CODE TABLE COMPARE-------------------------                           
-OPCODETABLE             CMP.B   #%1110,D2      ; Check for opcodes starting with 1110 (LS, AS, ROR, etc.)
-                        BEQ     OPEOR
-                        
-                        CMP.B   #%1101,D2      ; Check for opcodes starting with 1101 (MOVEQ, ADDA, etc.)
-                        BEQ     OPBITCLEAR
+OPCODETABLE             CMP.B   #%1001,D2
+                        BEQ     OPSUB    
 
-                        CMP.B   #%1100,D2      ; Check for opcodes starting with 1100 (AND, OR, LEA, etc.)
-                        BEQ     OPSHIFTROT
+                        CMP.B   #%0100, D2
+                        BEQ     OPLEA_NOP_NOT_JSR_RTS_MOVEM           (I changed)
 
-                        CMP.B   #%1011,D2      ; Check for opcodes starting with 1011 (MOVEM)
-                        BEQ     OPMOVEQ
-
-                        CMP.B   #%1001,D2      ; Check for opcodes starting with 1001 (SUB)
-                        BEQ     OPLEA
-                        
-                        CMP.B   #%1000,D2      ; Check for opcodes starting with 1000 (OR)
+                        CMP.B   #%1100, D2
                         BEQ     OPAND
 
-                        CMP.B   #%0111,D2      ; Check for opcodes starting with 0111 (MOVEA, MOVE)
-                        BEQ     OPOR
+                        CMP.B   #%1000, D2
+                        BEQ     OPOR    
+                        
+                        CMP.B   #%1110, D2
+                        BEQ     OPLSL_LSR_ASL_ASR_ROL_ROR      (I changed)
+                        
+                        ;CMP.B   #%1110, D2       (I think we only need one #%1110 for LSL, LSR, ASL, ASR, ROL, ROR) by Lam
+                        ;BEQ     OPSHIFTROT
 
-                        CMP.B   #%0110,D2      ; Check for opcodes starting with 0110 (NEG)
+
+*-----------------------------NEW--------------------------------
+                        CMP.B   #%1101, D2        
+                        BEQ     OPADD_ADDA
+
+                        CMP.B   #%0101, D2        
                         BEQ     OPADDQ
 
-                        CMP.B   #%0101,D2      ; Check for opcodes starting with 0101 (JSR)
-                        BEQ     OPNEG
+                        CMP.B   #%0001, D2
+                        BEQ     OPMOVEB
                         
-                        CMP.B   #%0100,D2      ; Check for opcodes starting with 0100 (BGT)
-                        BEQ     OPADDA
+                        CMP.B   #%0011, D2
+                        BEQ     OPMOVEW_MOVEAW
 
-                        CMP.B   #%0011,D2      ; Check for opcodes starting with 0011 (BRA, BEQ)
-                        BEQ     OPMOVE
+                        CMP.B   #%0010, D2
+                        BEQ     OPMOVEL_MOVEAL
+                        
+                        CMP.B   #%0111, D2
+                        BEQ     OPMOVEQ
 
-                        CMP.B   #%0010,D2      ; Check for opcodes starting with 0010 (NOT)
-                        BEQ     OPMOVEM
+                        CMP.B   #%0110, D2
+                        BEQ     OPBRA_BCC
 
-                        CMP.B   #%0001,D2      ; Check for opcodes starting with 0001 (SUBQ)
+                        CMP.B   #%1011, D2
+                        BEQ     OPCMP
+
+*---------------------------------------------------------------  
+OPSUB
+                        LEA     SUB_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     AFTER_OPCODE
+                        JSR     SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EA_SUB
+
+
+OPLEA_NOP_NOT_JSR_RTS_MOVEM   
+                        JSR     AFTER_OPCODE
+
+                        MOVE.W  DESTINATION_MODE, D2
+                        CMP.B   #%001, D2
+                        BEQ     OPNOP_NOTW_RTS
+                        
+                        CMP.B   #%100, D2
+                        BEQ     OPMOVEM_ADDRESS
+                        
+                        CMP.B   #%110, D2
+                        BEQ     OPMOVEM_REGISTER
+
+                        CMP.B   #%111, D2
+                        BEQ     OPLEA
+
+                        CMP.B   #%000, D2
+                        BEQ     OPNOTB
+
+                        CMP.B   #%010, D2
+                        BEQ     OPNOTL_JSR 
+
+                        BRA     OPINVALID
+
+OPMOVEM_ADDRESS
+                        LEA     MOVEM_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        
+                        
+                        JSR     AFTER_OPCODE
+                        JSR     MOVEM_SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+                        BRA     EAMOVEM 
+
+OPMOVEM_REGISTER
+                        LEA     MOVEM_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        
+                        
+                        JSR     AFTER_OPCODE
+                        JSR     MOVEM_SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+                        BRA     EAMOVEM 
+                        
+OPLEA
+                        LEA     LEA_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     PRINT_SPACE
+                        BRA     EA_LEA 
+                        
+OPNOP_NOTW_RTS
+                        MOVE.W  DESTINATION_REGISTER, D2
+                        CMP.B   #%111, D2
+                        BEQ     OPNOP_RTS
+
+                        CMP.B   #%011, D2
+                        BEQ     OPNOTW
+
+                        BRA     OPINVALID
+
+OPNOP_RTS               
+                        MOVE.W  SOURCE_REGISTER, D2
+                        CMP.B   #%001, D2
+                        BEQ     OPNOP
+
+                        CMP.B   #%101, D2
+                        BEQ     OPRTS
+
+                        BRA     OPINVALID
+
+OPNOP                   
+                        LEA     NOP_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     PRINT_SPACE
+                        BRA     EA_NOP_RST
+
+OPRTS
+                        LEA     RTS_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     PRINT_SPACE
+                        BRA     EA_NOP_RST
+
+OPNOTW
+                        LEA     NOTW_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     PRINT_SPACE
+                        BRA     EA_NOT_JSR
+
+OPNOTB
+                        LEA     NOTB_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     PRINT_SPACE
+                        BRA     EA_NOT_JSR
+
+OPNOTL_JSR
+                        MOVE.W  DESTINATION_REGISTER, D2
+                        CMP.B   #%011, D2
+                        BEQ     OPNOTL
+
+                        CMP.B   #%111, D2
                         BEQ     OPJSR
 
-                        CMP.B   #%0000,D2      ; Check for opcodes starting with 0000 (BRA, BGT, BLE)
-                        BEQ     OPSUB
+                        BRA     OPINVALID
+                        
+OPNOTL
+                        LEA     NOTL_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     PRINT_SPACE
+                        BRA     EA_NOT_JSR
+
+OPJSR
+                        LEA     JSR_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     PRINT_SPACE
+                        BRA     EA_NOT_JSR
+
+OPAND
+                        LEA     AND_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                  
+                        JSR     AFTER_OPCODE
+                        JSR     SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EAAND_OR
+
+OPOR
+                        LEA     OR_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                  
+                        JSR     AFTER_OPCODE
+                        JSR     SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EAAND_OR
+
+
+OPLSL_LSR_ASL_ASR_ROL_ROR
+                        JSR     AFTER_OPCODE
+                        MOVE.W  DESTINATION_MODE, D2
+                        MOVE.W  #14,D5
+                        LSL     D5, D2
+                        LSR     D5, D2
+                        
+                        CMP.B   #%00, D2
+                        BEQ     SHIFT_REGISTER
+                        CMP.B   #%01, D2
+                        BEQ     SHIFT_REGISTER
+                        CMP.B   #%10, D2
+                        BEQ     SHIFT_REGISTER
+                        CMP.B   #%11, D2
+                        BEQ     OPSHIFT_ADDRESS
                         
                         BRA     OPINVALID
                         
-*---------------------------------------------------------------  
-OPNOP
-        LEA     OP_NOP_LABEL, A1
-        BRA     OUTPUT_OPCODE
-OPEOR
-        LEA     OP_EOR_LABEL, A1
-        BRA     OUTPUT_OPCODE
-OPBITCLEAR
-        LEA     OP_BITCLEAR_LABEL, A1
-        BRA     OUTPUT_OPCODE
-OPSUB
-        LEA     OP_SUB_LABEL, A1
-        BRA     OUTPUT_OPCODE
-OPLEA
-        LEA     OP_LEA_LABEL, A1
-        BRA     OUTPUT_OPCODE
-OPAND
-        LEA     OP_AND_LABEL, A1
-        BRA     OUTPUT_OPCODE
-        
-OPOR
-        LEA     OP_OR_LABEL, A1
-        BRA     OUTPUT_OPCODE
 
-OPNOT
-        LEA     OP_NOT_LABEL, A1
-        BRA     OUTPUT_OPCODE
+SHIFT_REGISTER                        
+                        MOVE.W  SOURCE_MODE, D2
+                        LSL     D5, D2
+                        LSR     D5, D2
 
-OPSHIFTROT
-        LEA     OP_SHIFTROT_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        CMP.B   #%00, D2
+                        BEQ     OPREGISTER_ASL_ASR
+                        CMP.B   #%01, D2
+                        BEQ     OPREGISTER_LSL_LSR
+                        CMP.B   #%11, D2
+                        BEQ     OPREGISTER_ROL_ROR
+                        
+                        
+                        BRA     OPINVALID
 
-OPADDQ
-        LEA     OP_ADDQ_LABEL, A1
-        BRA     OUTPUT_OPCODE
+OPREGISTER_ASL_ASR
+                        LEA     AS_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                
+                        JSR     DIRECTION_DETECTOR
+                        JSR     SHIFT_SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+                        
+                        BRA     EALSL_LSR_ASL_ASR_ROL_ROR
 
-OPNEG
-        LEA     OP_NEG_LABEL, A1
-        BRA     OUTPUT_OPCODE
+OPREGISTER_LSL_LSR
+                        LEA     LS_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                
+                        JSR     DIRECTION_DETECTOR
+                        JSR     SHIFT_SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+                        
+                        BRA     EALSL_LSR_ASL_ASR_ROL_ROR
+                        
+OPREGISTER_ROL_ROR
+                        LEA     RO_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                
+                        JSR     DIRECTION_DETECTOR
+                        JSR     SHIFT_SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+                        
+                        BRA     EALSL_LSR_ASL_ASR_ROL_ROR
+                        
+OPSHIFT_ADDRESS
+                        MOVE.W  DESTINATION_MODE, D2
+                        CMP.B   #%000, D2
+                        BEQ     OPADDRESS_ASL_ASR
+                       
+                        CMP.B   #%001, D2
+                        BEQ     OPADDRESS_LSL_LSR
+                
+                        CMP.B   #%011, D2
+                        BEQ     OPADDRESS_ROL_ROR             
+                
+                        BRA     INVALID_OPCODE
+
+OPADDRESS_ASL_ASR
+                        LEA     AS_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                
+                        JSR     DIRECTION_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EASHIFT_ADDRESS
+
+OPADDRESS_LSL_LSR
+                        LEA     LS_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                
+                        JSR     DIRECTION_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EASHIFT_ADDRESS
+
+OPADDRESS_ROL_ROR
+                        LEA     RO_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                
+                        JSR     DIRECTION_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EASHIFT_ADDRESS
+
+OPADD_ADDA
+                        JSR     AFTER_OPCODE
+                        MOVE.W  DESTINATION_MODE, D2
+                        
+                        CMP.B   #%000, D2
+                        BEQ     OPADD
+                       
+                        CMP.B   #%001, D2
+                        BEQ     OPADD
+                
+                        CMP.B   #%010, D2
+                        BEQ     OPADD
+                        
+                        CMP.B   #%100, D2
+                        BEQ     OPADD
+
+                        CMP.B   #%101, D2
+                        BEQ     OPADD
+                        
+                        CMP.B   #%110, D2
+                        BEQ     OPADD
+                        
+                        CMP.B   #%011, D2
+                        BEQ     OPADDA
+                        
+                        CMP.B   #%111, D2
+                        BEQ     OPADDA
+                        
+                        BRA     INVALID_OPCODE  
+
+OPADD
+                        LEA     ADD_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+
+                        JSR     SIZE_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EAADD
 
 OPADDA
-        LEA     OP_ADDA_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        LEA     ADD_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
 
-OPASL
-        LEA     OP_ASL_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        JSR     ADDA_SIZE_DETECTOR
+                        JSR     PRINT_SPACE
 
-OPASR
-        LEA     OP_ASR_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        BRA     EAADDA
 
-OPROL
-        LEA     OP_ROL_LABEL, A1
-        BRA     OUTPUT_OPCODE
+OPADDQ
+                        LEA     ADD_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        
+                        JSR     AFTER_OPCODE
+                        JSR     SIZE_DETECTOR
+                        JSR     PRINT_SPACE
 
-OPROR
-        LEA     OP_ROR_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        MOVE.W  HEX_RESULT, D2
+                        BRA     EAADDQ
 
-OPJSR
-        LEA     OP_JSR_LABEL, A1
-        BRA     OUTPUT_OPCODE
+OPMOVEB
+                        LEA     MOVEB_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        
+                        JSR     AFTER_OPCODE
+                        JSR     PRINT_SPACE
+                        
+                        BRA     EAMOVEB
 
-OPRTS
-        LEA     OP_RTS_LABEL, A1
-        BRA     OUTPUT_OPCODE
+OPMOVEW_MOVEAW
+                        JSR     AFTER_OPCODE
+                        MOVE.W  DESTINATION_MODE, D2
 
-OPMOVE
-        LEA     OP_MOVE_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        CMP.B   #%001, D2
+                        BEQ     OPMOVEAW
 
-OPMOVEA
-        LEA     OP_MOVEA_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        LEA     MOVEW_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        
+                        JSR     PRINT_SPACE
+
+                        BRA     EAMOVEW
+
+OPMOVEAW
+                        LEA     MOVEW_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                       
+                        JSR     PRINT_SPACE
+
+                        BRA     EAMOVEAW
+
+OPMOVEL_MOVEAL
+                        JSR     AFTER_OPCODE
+                        MOVE.W  DESTINATION_MODE, D2
+
+                        CMP.B   #%001, D2
+                        BEQ     OPMOVEAL
+
+                        LEA     MOVEL_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        
+                        JSR     PRINT_SPACE
+
+                        BRA     EAMOVEL
+
+OPMOVEAL
+                        LEA     MOVEAL_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                       
+                        JSR     PRINT_SPACE
+
+                        BRA     EAMOVEAL
 
 OPMOVEQ
-        LEA     OP_MOVEQ_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        LEA     MOVEQ_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
 
-OPMOVEM
-        LEA     OP_MOVEM_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        JSR     AFTER_OPCODE        
+                        JSR     PRINT_SPACE
 
+                        BRA     EAMOVEQ
+                        
+OPBRA_BCC
+                        ADD.L   #$2, CURR_ADDRESS        ; This is PC value
+                        MOVE.L  HEX_RESULT, D2
+                        
+                        LSL     #4, D2
+                        MOVE.w  #12, D7
+                        LSR     D7, D2
+                        
+                        CMP.B   #%0000, D2
+                        BEQ     OPBRA
+
+                        CMP.B   #%0111, D2
+                        BEQ     OPBEQ
+                        
+                        CMP.B   #%1110, D2
+                        BEQ     OPBGT
+                        
+                        CMP.B   #%1111, D2
+                        BEQ     OPBLE
+
+                        BRA     OPINVALID
+                        
 OPBRA
-        LEA     OP_BRA_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        LEA     BRA_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+       
+                        JSR     PRINT_SPACE
 
-OPBGT
-        LEA     OP_BGT_LABEL, A1
-        BRA     OUTPUT_OPCODE
-
-OPBLE
-        LEA     OP_BLE_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        BRA     EABCC_BRA
 
 OPBEQ
-        LEA     OP_BEQ_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        LEA     BEQ_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+       
+                        JSR     PRINT_SPACE
+
+                        BRA     EABCC_BRA
+                        
+OPBGT
+                        LEA     BGT_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+       
+                        JSR     PRINT_SPACE
+
+                        BRA     EABCC_BRA
+
+OPBLE
+                        LEA     BLE_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+       
+                        JSR     PRINT_SPACE
+
+                        BRA     EABCC_BRA
+                        
+OPCMP
+                        LEA     CMP_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        
+                        JSR     AFTER_OPCODE
+                        JSR     SIZE_DETECTOR        
+                        JSR     PRINT_SPACE
+
+                        BRA     EACMP
+
+OPMOVEM                                                                    ; NEED TO WORK ON MOVEM!!!!
+
 
 OPINVALID
-        LEA     OP_INVALID_LABEL, A1
-        BRA     OUTPUT_OPCODE
+                        LEA     INVALID_OPCODE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                
+                        JSR     DIRECTION_DETECTOR
+                        JSR     PRINT_SPACE
+
+                        BRA     EAINVALID
+
+*---------------------------EA-------------------------------
 
 
 
-DISSDONE                LEA     RESTARTQUESTION, A1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*---------------------------Tools----------------------------
+AFTER_OPCODE
+                        MOVE.W  HEX_RESULT, D2
+                        LSL     #4, D2
+                        MOVE.W  #13,D7
+                        LSR     D7, D2
+                        MOVE.W  D2, DESTINATION_REGISTER
+
+                        MOVE.W  HEX_RESULT, D2
+                        LSL     #7, D2
+                        LSR     D7, D2
+                        MOVE.W  D2, DESTINATION_MODE
+
+                        MOVE.W  HEX_RESULT, D2
+                        MOVE.W  #10,D7
+                        LSL     D5, D2
+                        MOVE.W  #13,D7
+                        LSR     D7, D2
+                        MOVE.W  D2, SOURCE_MODE
+
+                        MOVE.W  HEX_RESULT, D2
+                        MOVE.W  #13,D7
+                        LSL     D7, D2
+                        LSR     D7, D2
+                        MOVE.W  D2, SOURCE_REGISTER
+
+                        MOVE.W  HEX_RESULT, D2
+                        RTS
+
+SIZE_DETECTOR              
+                        CLR     D6
+                        MOVE.W  DESTINATION_MODE, D2
+                        CMP.B   #%100, D2
+                        BLT     UNCHANGE_SIZE
+
+                        MOVE.B  #1, D6
+                        
+                        CMP.B   #%100, D2
+                        BEQ     PRINT_BYTE
+                        CMP.B   #%101, D2
+                        BEQ     PRINT_WORD
+                        CMP.B   #%110, D2
+                        BEQ     PRINT_LONG
+
+UNCHANGE_SIZE           
+                        CMP.B   #%000, D2
+                        BEQ     PRINT_BYTE
+                        CMP.B   #%001, D2
+                        BEQ     PRINT_WORD
+                        CMP.B   #%010, D2
+                        BEQ     PRINT_LONG
+                        RTS
+
+ADDA_SIZE_DETECTOR
+                        MOVE.W  DESTINATION_MODE, D2
+                        CMP.B   #%011, D2
+                        BEQ     PRINT_WORD
+
+                        CMP.B   #%111, D2
+                        BEQ     PRINT_LONG
+                        RTS
+SHIFT_SIZE_DETECTOR
+                        MOVE.W  DESTINATION_MODE, D2
+                        MOVE.W  #14,D7
+                        LSL     D7, D2
+                        LSR     D7, D2
+                        
+                        CMP.B   #%00, D2
+                        BEQ     PRINT_BYTE
+                        CMP.B   #%01, D2
+                        BEQ     PRINT_WORD
+                        CMP.B   #%10, D2
+                        BEQ     PRINT_LONG
+                        RTS
+                        
+MOVEM_SIZE_DETECTOR
+                        MOVE.W  DESTINATION_MODE, D2
+                        ;MOVE.W  #14,D7
+                        ;LSL     D7, D2
+                        ;LSR     D7, D2
+                        
+                        CMP.B   #%10, D2
+                        BEQ     PRINT_WORD
+                        CMP.B   #%11, D2
+                        BEQ     PRINT_LONG
+                        RTS
+
+DIRECTION_DETECTOR
+                        MOVE.W  DESTINATION_MODE, D2
+                        LSR     #2, D2
+                        
+                        CMP.B   #%001, D2
+                        BEQ     PRINT_LEFT
+
+                        CMP.B   #%001, D2
+                        BEQ     PRINT_RIGHT
+                        RTS
+                        
+DISSDONE                
+                        LEA     RESTARTQUESTION, A1
                         MOVE.B  #18, D0
                         TRAP    #15
                         
@@ -316,11 +821,41 @@ DISSDONE                LEA     RESTARTQUESTION, A1
                         BRA     DONE               
                                                                 
 *------------output--------------
-
-OUTPUT_OPCODE
+PRINT_LEFT              LEA     LEFT_STRING, A1
                         MOVE.B  #14, D0
                         TRAP    #15
-                        BRA     DIASSEMBLE
+                        RTS
+                
+PRINT_RIGHT             LEA     RIGHT_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        RTS
+                
+PRINT_BYTE              LEA     BYTE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        RTS
+                
+PRINT_WORD              LEA     WORD_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        RTS
+                
+PRINT_LONG              LEA     LONG_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        RTS
+COMMA_PRINT             
+                        LEA Comma, A1                       
+                        MOVE.B #14, D0
+                        TRAP #15
+                        RTS                        
+PRINT_SPACE                                                    ; (NEW)
+                        LEA     SPACE_STRING, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        RTS
+
 
 *--------------------------------
     
@@ -360,60 +895,84 @@ EXITITING               DC.B    'Thank you for using our disassembler! Goodbye..
 
 
 *----------------68K_CODE_STRING----------------------(NEW)
-LEFT_STRING             DC.B 'L',0
-RIGHT_STRING            DC.B 'R',0
+LEFT_STRING             DC.B    'L',0
+RIGHT_STRING            DC.B    'R',0
 
-BYTE_STRING             DC.B '.B',0
-WORD_STRING             DC.B '.W',0
-LONG_STRING             DC.B '.L',0
+BYTE_STRING             DC.B    '.B',0
+WORD_STRING             DC.B    '.W',0
+LONG_STRING             DC.B    '.L',0
 
-INVALID_OPCODE_STRING   DC.B '??(DATA)??',0
-OP_NOP_LABEL            DC.B    'NOP',0
-OP_EOR_LABEL            DC.B    'EOR',0
-OP_BITCLEAR_LABEL       DC.B    'BITCLEAR',0
-OP_SUB_LABEL            DC.B    'SUB',0
-OP_LEA_LABEL            DC.B    'LEA',0
-OP_AND_LABEL            DC.B    'AND',0
-OP_OR_LABEL             DC.B    'OR',0
-OP_NOT_LABEL            DC.B    'NOT',0
-OP_SHIFTROT_LABEL       DC.B    'SHIFT/ROT',0
-OP_ADDQ_LABEL           DC.B    'ADDQ',0
-OP_NEG_LABEL            DC.B    'NEG',0
-OP_ADDA_LABEL           DC.B    'ADDA',0
-OP_ASL_LABEL            DC.B    'ASL',0
-OP_ASR_LABEL            DC.B    'ASR',0
-OP_ROL_LABEL            DC.B    'ROL',0
-OP_ROR_LABEL            DC.B    'ROR',0
-OP_JSR_LABEL            DC.B    'JSR',0
-OP_RTS_LABEL            DC.B    'RTS',0
-OP_MOVE_LABEL           DC.B    'MOVE',0
-OP_MOVEA_LABEL          DC.B    'MOVEA',0
-OP_MOVEQ_LABEL          DC.B    'MOVEQ',0
-OP_MOVEM_LABEL          DC.B    'MOVEM',0
-OP_BRA_LABEL            DC.B    'BRA',0
-OP_BGT_LABEL            DC.B    'BGT',0
-OP_BLE_LABEL            DC.B    'BLE',0
-OP_BEQ_LABEL            DC.B    'BEQ',0
-OP_INVALID_LABEL        DC.B    'INVALID OPCODE',0
+INVALID_OPCODE_STRING   DC.B    '??(OpCode)??',0
+CMP_OPCODE_STRING       DC.B    'CMP',0
+ADD_OPCODE_STRING       DC.B    'ADD',0
+ADDA_OPCODE_STRING      DC.B    'ADDA',0
+ADDQ_OPCODE_STRING      DC.B    'ADDQ',0
+SUB_OPCODE_STRING       DC.B    'SUB',0
+AND_OPCODE_STRING       DC.B    'AND',0
+OR_OPCODE_STRING        DC.B    'OR',0
+MOVEB_OPCODE_STRING     DC.B    'MOVE.B',0
+MOVEQ_OPCODE_STRING     DC.B    'MOVEQ',0
+MOVEW_OPCODE_STRING     DC.B    'MOVE.W',0
+MOVEAW_OPCODE_STRING    DC.B    'MOVEA.W',0
+MOVEL_OPCODE_STRING     DC.B    'MOVE.L',0
+MOVEAL_OPCODE_STRING    DC.B    'MOVEA.L',0
+MOVEM_OPCODE_STRING     DC.B    'MOVEM',0
+BRA_OPCODE_STRING       DC.B    'BRA',0
+BEQ_OPCODE_STRING       DC.B    'BEQ',0
+BGT_OPCODE_STRING       DC.B    'BGT',0
+BLE_OPCODE_STRING       DC.B    'BLE',0
+LEA_OPCODE_STRING       DC.B    'LEA',0
+NOTB_OPCODE_STRING      DC.B    'NOT.B',0
+NOTW_OPCODE_STRING      DC.B    'NOT.W',0
+NOTL_OPCODE_STRING      DC.B    'NOT.L',0
+JSR_OPCODE_STRING       DC.B    'JSR',0
+RTS_OPCODE_STRING       DC.B    'RTS',0
+NOP_OPCODE_STRING       DC.B    'NOP',0
+LS_OPCODE_STRING        DC.B    'LS',0
+AS_OPCODE_STRING        DC.B    'AS',0
+RO_OPCODE_STRING        DC.B    'RO',0
 
+D_Mode                  DC.B    'D',0  * DATA REGISTER DIRECT 
+A_Mode                  DC.B    'A',0  * ADDRESS REGISTER DIRECT
+Plus_sign               DC.B    '+',0
+Minus_sign              DC.B    '-',0
+Open_pars               DC.B    '(',0  * OPEN PARENTHESIS
+Close_pars              DC.B    ')',0  * CLOSE PARENTHIS
+Hash_sign               DC.B    '#',0  * HASH SIGN
+Dollar_sign             DC.B    '$',0  * DOLLAR SIGN
+Comma                   DC.B    ',',0  * COMMA
+Invalid_EA              DC.B    '??(EA)??', 0
 
-D_Mode          DC.B    'D', 0  * DATA REGISTER DIRECT 
-A_Mode          DC.B    'A', 0  * ADDRESS REGISTER DIRECT
-Plus_sign       DC.B    '+', 0
-Minus_sign      DC.B    '-', 0
-Open_pars       DC.B    '(', 0  * OPEN PARENTHESIS
-Close_pars      DC.B    ')', 0  * CLOSE PARENTHIS
-Hash_sign       DC.B    '#', 0  * HASH SIGN
-Dollar_sign     DC.B    '$', 0  * DOLLAR SIGN
-Comma           DC.B    ',', 0  * COMMA
-Invalid_EA      DC.B    '??(EA)??', 0
+SPACE_STRING            DC.B    ' ',0
 
+0_STRING	            DC.B    '0',0
+1_STRING	            DC.B    '1',0
+2_STRING	            DC.B    '2',0
+3_STRING	            DC.B    '3',0
+4_STRING	            DC.B    '4',0
+5_STRING	            DC.B    '5',0
+6_STRING	            DC.B    '6',0
+7_STRING	            DC.B    '7',0
+8_STRING	            DC.B    '8',0
+9_STRING	            DC.B    '9',0
+A_STRING	            DC.B    'A',0
+B_STRING	            DC.B    'B',0
+C_STRING	            DC.B    'C',0
+D_STRING	            DC.B    'D',0
+E_STRING	            DC.B    'E',0
+F_STRING	            DC.B    'F',0
 
 
 *-----------------VARIABLES----------------
-STARTLOC                DS.L    1    ;longword of storage space for the address of the starting location for disassembly
-ENDLOC                  DS.L    1    ;longword of storage space for the address of the ending location for disassembly
+STARTLOC                DS.L    1    ; Longword of storage space for the address of the starting location for disassembly
+ENDLOC                  DS.L    1    ; Longword of storage space for the address of the ending location for disassembly
 
+DESTINATION_REGISTER    DS.L    1    ; Longword of storage space for the Destination Register
+DESTINATION_MODE        DS.L    1    ; Longword of storage space for the Destination Mode
+SOURCE_MODE             DS.L    1    ; Longword of storage space for the Source Mode
+SOURCE_REGISTER         DS.L    1    ; Longword of storage space for the Source Register
+
+CURR_ADDRESS            DS.L    1    ; Longword of storage space for the CURRENT_ADDRESS
 
 *-----------------INPUT_STRING_TO_HEX_VARIABLES----------------
 INPUT_HEXSTR            DS.L    1    ; longword of storage space for the input string to be converted
@@ -422,12 +981,11 @@ TRUNCATEDHEX            DS.B    1    ; byte of storage to indicate if the input 
 INVALIDHEX              DS.B    1    ; byte of storage to indicate if the input string contained an invalid character
 HEXSTR_ARRAY            DC.B    '0123456789ABCDEFabcdef',0  ;a byte array with all the valid hexadecimal characters
 HEXVALUE_ARRAY          DC.B    '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,10,11,12,13,14,15,0'
-
 *------------------------------------------
+              
+
 DONE
                         END    START        ; last line of source
-
-
 
 
 *~Font name~Courier New~
