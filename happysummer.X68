@@ -1314,12 +1314,21 @@ DISSDONE
                         TRAP    #15
                         
                         CMP.B   #1, D1
-                        BEQ     PRINTINPUTMSG       ;user entered 0, restart the system
+                        BEQ     PRINTINPUTMSG       ;user entered 1, restart the system
                         
-                        LEA     EXITITING, A1       ;user entered 1, end program
+                        CMP.B   #0, D1
+                        BEQ     CLOSINGMESSAGES
+                        
+                        LEA     NOTBINARY, A1           ;user inputed wrong code
                         MOVE.B  #14, D0
                         TRAP    #15
-                        BRA     DONE               
+                        BRA     DISSDONE                
+                        
+CLOSINGMESSAGES         LEA     EXITITING, A1       ;user entered , end program
+                        MOVE.B  #14, D0
+                        TRAP    #15
+                        BRA     DONE     
+          
                                                                 
 *------------output--------------
 PRINT_LEFT              LEA     LEFT_STRING, A1
@@ -1380,7 +1389,7 @@ ENDLOCMSG               DC.B    'Address of ending location: $',0
 NOTES                   DC.B    CR,LF,'LOADING...',CR,LF
                         DC.B    'PS. Only one pages worth will display at a time.',CR,LF
                         DC.B    'Press ENTER to load another pages worth.',CR,LF
-                        DC.B    'And anything that cannot be decoded will be displayed as "100 DATA $WXYZ"',CR,LF,0              
+                        DC.B    'And anything that cannot be decoded will be displayed as "100 DATA $WXYZ"',CR,LF,CR,LF,0              
 *----------------MESSAGES----------------------
 INVADRMSG               DC.B    'The address entered are invalid.',CR,LF
                         DC.B    'Please try again!',CR,LF,0
@@ -1396,6 +1405,8 @@ RESTARTQUESTION         DC.B    CR,LF,CR,LF,'Would you like to disassemble anoth
                         DC.B    'If no, please enter 0.',CR,LF,0
                         
 EXITITING               DC.B    'Thank you for using our disassembler! Goodbye...',CR,LF,0
+
+NOTBINARY               DC.B    'Invalid input!',0
 
 
 *----------------68K_CODE_STRING----------------------(NEW)
