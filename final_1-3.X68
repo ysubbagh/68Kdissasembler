@@ -42,7 +42,7 @@ FINALMSGS               MOVE.B  #14, D0
                         LEA     NOTES, A1
                         TRAP    #15
                         
-STARTOP                 JSR     DISASSEMBLE
+                        BRA     LOADSTARTADRDRESS       
                              
 *-------------------------------
 
@@ -132,15 +132,18 @@ INVALIDADDRESS          LEA     INVADRMSG, A1
 VALIDADDRESS
 
 *---------load each location in
-                        MOVE.W  ENDLOC, (A2)
-LOADSTARTADRDRESS       MOVE.W  STARTLOC, (A1)         ;Is this for current address?
-                        MOVE.W  CURR_ADDRESS, (A1)  ;Is this for current address?(NEW+CHECK!!!!)James
+                        MOVE.W  ENDLOC,A2
+LOADSTARTADRDRESS       MOVE.W  STARTLOC,A1         ;Is this for current address?
+                        MOVE.W  CURR_ADDRESS, A1  ;Is this for current address?(NEW+CHECK!!!!)James
 
                                                                                                      ; I think we need write some code for user input machine code!!!!
 DIASSEMBLE              CLR     D1
                         CLR     D2
-                        MOVE.W  (A1),D1             ;unchanged
-                        MOVE.W  D1, D2              ;modifyable                    
+                        MOVE.W  STARTLOC,D1             ;unchanged
+                        MOVE.W  D1, D2              ;modifyable
+                             
+
+PRINTCURRADDR           JSR     PRINTADDR               
                                  
 ;CHECKFORNOP             CMP.W   #$4E71, D2
 ;                        BEQ     OPNOP
@@ -154,6 +157,18 @@ GETFIRST8
 
 MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4, moved into last byte
                         BRA     OPCODETABLE
+                        
+*-----------------ADDRESS PRINTINTG-------------------------                         
+PRINTADDR           MOVE.W  A1, D7
+                    MOVE.B  #15, D1
+                    MOVE.B  #16, D2
+                    TRAP    #15
+                    LEA  SPACE_STRING, A1
+                    MOVE.B  #4, D0
+                    TRAP    #15
+             
+                    RTS    
+*-----------------------------------------------------------                         
                         
 *-----------------OP CODE TABLE COMPARE-------------------------                           
 OPCODETABLE             CMP.B   #%1001,D2
@@ -198,8 +213,11 @@ OPCODETABLE             CMP.B   #%1001,D2
 
                         CMP.B   #%1011, D2
                         BEQ     OPCMP
+                        
+                        BRA     OPINVALID           ;invalid line
 
 *---------------------------------------------------------------  
+
 OPSUB
                         LEA     SUB_OPCODE_STRING, A1
                         MOVE.B  #14, D0
@@ -697,7 +715,7 @@ EAINVALID
                         
                         BRA     DISSDONE     ; NEED TO CHECK
                         
-EAMOVEM                        ;--------------------------------------------->NEED TO WORK
+EAMOVEM               ;--------------------------------------------->NEED TO WORK
 
 
 EAADD
@@ -765,12 +783,12 @@ EA_SUB
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
                         MOVE.W  SOURCE_MODE, D6
                         MOVE.W  SOURCE_REGISTER, D7
-                        JSR     PRINT_COMMA
                         JSR     EATABLE_MODE
-                        
+                        JSR     PRINT_COMMA
+
                         MOVE.W  DESTINATION_REGISTER, D7
                         JSR     PRINTDn_MODE
-                        
+
                         BRA     DISSDONE
 EASUB_FIRSTDn
                         MOVE.W  DESTINATION_REGISTER, D7
@@ -1400,7 +1418,7 @@ BYTE_STRING             DC.B    '.B',0
 WORD_STRING             DC.B    '.W',0
 LONG_STRING             DC.B    '.L',0
 
-INVALID_OPCODE_STRING   DC.B    '??(OpCode)??',0
+INVALID_OPCODE_STRING   DC.B    'DATA $WYYZ',0
 CMP_OPCODE_STRING       DC.B    'CMP',0
 ADD_OPCODE_STRING       DC.B    'ADD',0
 ADDA_OPCODE_STRING      DC.B    'ADDA',0
