@@ -42,7 +42,7 @@ FINALMSGS               MOVE.B  #14, D0
                         LEA     NOTES, A1
                         TRAP    #15
                         
-                        BRA     LOADSTARTADRDRESS       
+                        BRA     LOADSTARTADRDRESS              
                              
 *-------------------------------
 
@@ -58,7 +58,6 @@ NUMBER                  SUB.B   #48, (A1)+
 
 BITSHIFT                CLR     D0
                         CLR     D1
-                        CLR     D1
                         CLR     D2
                         LEA     INPUT_HEXSTR, A1
 LOAD                    MOVE.B  (A1)+, D0
@@ -66,10 +65,10 @@ LOAD                    MOVE.B  (A1)+, D0
                         LSL.L   #4, D1
                         OR.L    D0, D1
                         ADD.B   #1, D2
-                        CMP.B   #4, D2
-                        BEQ     HEX_DONE
+                        CMP.B   #4, D2  ;address limit
+                        BEQ   HEX_DONE
                         BRA     LOAD
-            
+        
 HEX_DONE                MOVE.L  D1, HEX_RESULT
                         RTS
                         
@@ -115,23 +114,21 @@ INVALIDADDRESS          LEA     INVADRMSG, A1
                         CMP.L   #$FF00, D1          ; Clear the screen TASK 11
                         BRA     PRINTINPUTMSG       ;restart the program
 
-VALIDADDRESS
-
-*---------load each location in
-                        LEA     ENDLOC,A2
-LOADSTARTADRDRESS       LEA     STARTLOC,A1         ;Is this for current address?
-                        MOVE.W  (A1),D1
-                        MOVE.W  (A2),D2
+*---------load each locaLR     
+LOADSTARTADRDRESS       CLR     D0
+                        CLR     D1
+                        CLR     D2
+                        LEA     ENDLOC, A0
+                        MOVE.L  (A0),D0
+                        LEA     STARTLOC, A1         ;Is this for current address?
+                        MOVE.L  (A1), D1
                         ;MOVE.W  CURR_ADDRESS, A1  ;Is this for current address?(NEW+CHECK!!!!)James
 
                                                                                                      ; I think we need write some code for user input machine code!!!!
-DIASSEMBLE              CLR     D1
-                        CLR     D2
-                        MOVE.W  (A1),D1             ;unchanged
-                        MOVE.W  D1, D2              ;modifyable
+DIASSEMBLE              MOVE.L  D1, D2
                            
 
-PRINTCURRADDR           JSR     PRINTADDR               
+PRINTCURRADDR           ;JSR     PRINTADDR               
                                  
 ;CHECKFORNOP             CMP.W   #$4E71, D2
 ;                        BEQ     OPNOP
@@ -147,15 +144,15 @@ MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4,
                         BRA     OPCODETABLE
                         
 *-----------------ADDRESS PRINTINTG-------------------------                         
-PRINTADDR           MOVE.W  A1, D7
-                    MOVE.B  #15, D1
-                    MOVE.B  #16, D2
-                    TRAP    #15
-                    LEA  SPACE_STRING, A1
-                    MOVE.B  #4, D0
-                    TRAP    #15
+PRINTADDR               MOVE.W  A1, D7
+                        MOVE.B  #15, D1
+                        MOVE.B  #16, D2
+                        TRAP    #15
+                        LEA  SPACE_STRING, A1
+                        MOVE.B  #4, D0
+                        TRAP    #15
              
-                    RTS    
+                        RTS    
 *-----------------------------------------------------------                         
                         
 *-----------------OP CODE TABLE COMPARE-------------------------                           
