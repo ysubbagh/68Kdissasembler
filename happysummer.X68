@@ -119,17 +119,19 @@ INVALIDADDRESS          LEA     INVADRMSG, A1
 LOADSTARTADRDRESS       CLR     D0
                         CLR     D1
                         CLR     D2
-                        LEA     ENDLOC, A0
+                        MOVE.L  ENDLOC, A0
+                        MOVE.L  STARTLOC, A1
+                        
+                        JSR     PRINTADDR
+                        
+                        ;LEA     ENDLOC, A0
                         MOVE.L  (A0),D0
-                        LEA     STARTLOC, A1         ;Is this for current address?
-                        MOVE.L  (A1), D1
+                        ;LEA     STARTLOC, A1         ;Is this for current address?
+                        MOVE.L  (A1),D1
                         ;MOVE.W  CURR_ADDRESS, A1  ;Is this for current address?(NEW+CHECK!!!!)James
 
                                                                                                      ; I think we need write some code for user input machine code!!!!
-DIASSEMBLE              MOVE.L  D1, D2
-                           
-
-PRINTCURRADDR           ;JSR     PRINTADDR               
+DIASSEMBLE              MOVE.L  D1, D2                         
                                  
 ;CHECKFORNOP             CMP.W   #$4E71, D2
 ;                        BEQ     OPNOP
@@ -137,20 +139,18 @@ PRINTCURRADDR           ;JSR     PRINTADDR
 ;CHECKFORRTS             CMP.W   #$4E75, D2
 ;                        BEQ     OPRTS
 
-GETFIRST8               
-                        LSR.W   #4, D2
-
+GETFIRST8               LSR.W   #4, D2
 
 MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4, moved into last byte
                         BRA     OPCODETABLE
                         
 *-----------------ADDRESS PRINTINTG-------------------------                         
-PRINTADDR               MOVE.W  A1, D7
-                        MOVE.B  #15, D1
+PRINTADDR               MOVE.W  A1, D1
+                        MOVE.B  #15, D0
                         MOVE.B  #16, D2
                         TRAP    #15
                         LEA  SPACE_STRING, A1
-                        MOVE.B  #4, D0
+                        MOVE.B  #14, D0
                         TRAP    #15
              
                         RTS    
@@ -1308,8 +1308,9 @@ DIRECTION_DETECTOR
                         BEQ     PRINT_RIGHT
                         RTS
                         
-DISSDONE                
-                        LEA     RESTARTQUESTION, A1
+DISSDONE                ;end of EAs use this call to end the line, instead of going back and renaming everything jsut use it for the loop
+
+PRINTENDING             LEA     RESTARTQUESTION, A1
                         MOVE.B  #18, D0
                         TRAP    #15
                         
@@ -1322,7 +1323,7 @@ DISSDONE
                         LEA     NOTBINARY, A1           ;user inputed wrong code
                         MOVE.B  #14, D0
                         TRAP    #15
-                        BRA     DISSDONE                
+                        BRA     PRINTENDING             
                         
 CLOSINGMESSAGES         LEA     EXITITING, A1       ;user entered , end program
                         MOVE.B  #14, D0
