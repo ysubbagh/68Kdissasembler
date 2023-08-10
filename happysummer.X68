@@ -21,6 +21,7 @@ INPUTSTART              LEA     INPUT_HEXSTR, A1
                         JSR     VALID_INPUT_SIZE              ; IF USER ACCIDENTALLY ENTER INVALID SIZE FOR THE INPUT (NEW)
                         ;BEQ     PRINTINPUTMSG                 ; LOOP BACK TO ASK USER INPUT AGAIN (NEW)
                         ;MOVE.L  STARTLOC,INPUT_HEXSTR        ; MOVE the Al to INPUT_HEXSTR convertor register (NEW), QUESTION!!!! should this be (A1?)
+                        MOVE.B  D1, D2
                         JSR     HEXCONVERTOR            ;Converting the hex value from string (NEW)
                         MOVE.L  HEX_RESULT, STARTLOC    ; Store HEX_RESULT to STARTLOC (NEW)
                         
@@ -32,6 +33,7 @@ INPUTSTART              LEA     INPUT_HEXSTR, A1
 INPUTEND                LEA     INPUT_HEXSTR, A1
                         TRAP    #15
                         ;MOVE.L  ENDLOC,INPUT_HEXSTR        ; MOVE the Al to INPUT_HEXSTR convertor register (NEW)
+                        MOVE.B  D1, D2
                         JSR     HEXCONVERTOR            ; Converting the hex value from string (NEW)
                         MOVE.L  HEX_RESULT, ENDLOC      ; Store HEX_RESULT to ENDLOC (NEW)
                         JSR     CHECK_CONVERTED_HEXRESULT ; CHECK_ENDING_LOCATION_HEX_INPUT_RESULT
@@ -58,15 +60,14 @@ NUMBER                  SUB.B   #48, (A1)+
 
 BITSHIFT                CLR     D0
                         CLR     D1
-                        CLR     D2
                         LEA     INPUT_HEXSTR, A1
 LOAD                    MOVE.B  (A1)+, D0
                         AND.B   #$0F, D0
                         LSL.L   #4, D1
                         OR.L    D0, D1
-                        ADD.B   #1, D2
-                        CMP.B   #4, D2  ;address limit
-                        BEQ   HEX_DONE
+                        SUB.B   #1, D2
+                        CMP.B   #0, D2  ;address limit
+                        BEQ     HEX_DONE
                         BRA     LOAD
         
 HEX_DONE                MOVE.L  D1, HEX_RESULT
@@ -1312,7 +1313,7 @@ DISSDONE
                         MOVE.B  #18, D0
                         TRAP    #15
                         
-                        CMP.B   #0, D1
+                        CMP.B   #1, D1
                         BEQ     PRINTINPUTMSG       ;user entered 0, restart the system
                         
                         LEA     EXITITING, A1       ;user entered 1, end program
@@ -1364,32 +1365,34 @@ PRINT_SPACE                                                    ; (NEW)
 CR                      EQU     $0D
 LF                      EQU     $0A
 
-WELCOME                 DC.B    'WELCOME to the 68k dissasembler!',CR,LF,0
-                        DC.B    'You will prompted to enter a starting and ending location for theprogram code you would like dissasembled.',CR,LF,0
-                        DC.B    'Please enter these values in hexadecimal!',CR,LF,0
-                        DC.B    'Ending location should be greater than starting location, and neither should be longer in length than 6 characters. You do not need to add $ or 0x',CR,LF,0
+WELCOME                 DC.B    'WELCOME to the 68k dissasembler!',CR,LF
+                        DC.B    'You will prompted to enter a starting and ending location for the program',CR,LF 
+                        DC.B    'code you would like dissasembled.',CR,LF
+                        DC.B    'Please enter these values in hexadecimal!',CR,LF
+                        DC.B    'Ending location should be greater than starting location.',CR,LF
+                        DC.B    'Neither should be longer in length than 6 characters. You do not need to add $',CR,LF
                         DC.B    'EXAMPLE: 6006',CR,LF,0
                 
-STARTLOCMSG             DC.B    'Address of starting location: $',0 
+STARTLOCMSG             DC.B    CR,LF,'Address of starting location: $',0 
 
-ENDLOCMSG               DC.B    CR,LF,'Address of ending location: $',0
+ENDLOCMSG               DC.B    'Address of ending location: $',0
 
 NOTES                   DC.B    CR,LF,'LOADING...',CR,LF
                         DC.B    'PS. Only one pages worth will display at a time.',CR,LF
                         DC.B    'Press ENTER to load another pages worth.',CR,LF
                         DC.B    'And anything that cannot be decoded will be displayed as "100 DATA $WXYZ"',CR,LF,0              
 *----------------MESSAGES----------------------
-INVADRMSG               DC.B    'The address entered are invalid.',CR,LF,0
+INVADRMSG               DC.B    'The address entered are invalid.',CR,LF
                         DC.B    'Please try again!',CR,LF,0
                         
-INVAILDENDLOCMSG        DC.B    'Ending location should be greater than starting location!',CR,LF,0
+INVAILDENDLOCMSG        DC.B    'Ending location should be greater than starting location!',CR,LF
                         DC.B    'Please try again!',CR,LF,0                        
                         
-EMPTYMSG                DC.B    'Input cannot be empty!',CR,LF,0        ; New 
+EMPTYMSG                DC.B    'Input cannot be empty!',CR,LF        ; New 
                         DC.B    'Please try again!',CR,LF,0             ; New
                         
-RESTARTQUESTION         DC.B    'Would you like to disassemble another program?',CR,LF,0
-                        DC.B    'If yes, please enter 1.',CR,LF,0
+RESTARTQUESTION         DC.B    CR,LF,CR,LF,'Would you like to disassemble another program?',CR,LF
+                        DC.B    'If yes, please enter 1.',CR,LF
                         DC.B    'If no, please enter 0.',CR,LF,0
                         
 EXITITING               DC.B    'Thank you for using our disassembler! Goodbye...',CR,LF,0
@@ -1493,6 +1496,7 @@ DONE
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 
