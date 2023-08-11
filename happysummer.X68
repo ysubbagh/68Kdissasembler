@@ -158,7 +158,7 @@ PRINTADDR               MOVE.L  A5, D1              ;actual address
                         RTS    
 *-----------------------------------------------------------
 *-----------------LOOP STUFF-------------------------                         
-LOOPINC                 ADD.L   #8, A5      ;inc address
+LOOPINC                 ADD.L   #16, A5      ;inc address
                         MOVE.B  #13, D0
                         LEA     SPACE_STRING,A1
                         TRAP    #15
@@ -1178,12 +1178,12 @@ PRINTIMMEDIATE
                         BGE     IMMEDIATE_LONG              ; Immediate Long Size
                         BRA     IMMEDIATE_WORD              ; Immediate Word Size
                         
-IMMEDIATE_LONG                        
+IMMEDIATE_LONG          ADD.L   #16, D5    ;increment address to acomodate              
                         CLR.L   D1
                         MOVE.L  (A2)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
                         RTS 
-IMMEDIATE_WORD                        
+IMMEDIATE_WORD          ADD.L   #32, D5   ;increment address to acomodate               
                         CLR.L   D1
                         MOVE.L  (A2)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
@@ -1537,6 +1537,7 @@ DONE
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 
