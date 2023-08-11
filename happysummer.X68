@@ -119,6 +119,7 @@ INVALIDADDRESS          LEA     INVADRMSG, A1
 LOADSTARTADRDRESS       CLR     D0
                         CLR     D1
                         CLR     D2
+                        CLR     D3      ;use for printing loop page limitier
                         MOVE.L  ENDLOC, A0
                         MOVE.L  STARTLOC, A1
                         MOVE.L  A1, A5
@@ -146,7 +147,7 @@ MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4,
                         BRA     OPCODETABLE
                         
 *-----------------ADDRESS PRINTINTG-------------------------                         
-PRINTADDR               MOVE.W  A1, D1              ;actual address
+PRINTADDR               MOVE.W  A5, D1              ;actual address
                         MOVE.B  #15, D0
                         MOVE.B  #16, D2
                         TRAP    #15
@@ -157,14 +158,28 @@ PRINTADDR               MOVE.W  A1, D1              ;actual address
                         RTS    
 *-----------------------------------------------------------
 *-----------------LOOP STUFF-------------------------                         
-LOOPINC                 ADD.L   #4, A5 
+LOOPINC                 ADD.L   #8, A5 ;inc address
                         MOVE.B  #13, D0
                         LEA     SPACE_STRING,A1
                         TRAP    #15
                         
+                        JSR     PAGELOAD                    
                         BRA     LOOPMAIN                   
 *-----------------------------------------------------------
-                         
+PAGELOAD                ADD.W   #1, D3
+                        CMP.W   #22, D3
+                        BEQ     WAITFORUSERENTER         
+RETURNLOAD              
+                        RTS
+  
+                      
+WAITFORUSERENTER        LEA     LOADMOREENTER, A1
+
+                        MOVE.B  #18, D0
+                        TRAP    #15
+                        CLR     D1  
+                        CLR     D3
+                        BRA     RETURNLOAD
                         
 *-----------------OP CODE TABLE COMPARE-------------------------                           
 OPCODETABLE             CMP.B   #%1001,D2
@@ -1422,6 +1437,7 @@ EXITITING               DC.B    'Thank you for using our disassembler! Goodbye..
 
 NOTBINARY               DC.B    'Invalid input!',0
 
+LOADMOREENTER           DC.B    CR,LF,'Diassembly not done, press ENTER to load another page!',CR,LF,0
 
 *----------------68K_CODE_STRING----------------------(NEW)
 LEFT_STRING             DC.B    'L',0
