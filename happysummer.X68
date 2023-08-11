@@ -147,7 +147,7 @@ MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4,
                         BRA     OPCODETABLE
                         
 *-----------------ADDRESS PRINTINTG-------------------------                         
-PRINTADDR               MOVE.W  A5, D1              ;actual address
+PRINTADDR               MOVE.L  A5, D1              ;actual address
                         MOVE.B  #15, D0
                         MOVE.B  #16, D2
                         TRAP    #15
@@ -158,7 +158,7 @@ PRINTADDR               MOVE.W  A5, D1              ;actual address
                         RTS    
 *-----------------------------------------------------------
 *-----------------LOOP STUFF-------------------------                         
-LOOPINC                 ADD.L   #8, A5 ;inc address
+LOOPINC                 ADD.L   #8, A5      ;inc address
                         MOVE.B  #13, D0
                         LEA     SPACE_STRING,A1
                         TRAP    #15
@@ -717,12 +717,12 @@ OPINVALID
 
 *---------------------------EA-------------------------------
 EAINVALID
-                        LEA     Dollar_sign, A1
-                        MOVE.B  #14, D0
-                        TRAP    #15
+                        ;LEA     Dollar_sign, A1
+                        ;MOVE.B  #14, D0
+                        ;TRAP    #15
                         
-                        MOVE.W  HEX_RESULT,D2
-                        JSR     HEXCONVERTOR
+                        ;MOVE.W  HEX_RESULT,D2
+                        ;JSR     HEXCONVERTOR
                         
                         BRA     DISSDONE     ; NEED TO CHECK
                         
