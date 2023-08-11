@@ -1332,7 +1332,146 @@ DIRECTION_DETECTOR
                         CMP.B   #%001, D2
                         BEQ     PRINT_RIGHT
                         RTS
+STRINGCONVERTOR
+                        MOVE.W  HEX_RESULT, D2
+                        MOVE.W  #12, D7
+                        LSR.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
                         
+                        MOVE.W  HEX_RESULT, D2
+                        LSL.L   #4, D2
+                        LSL.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
+                        
+                        MOVE.W  HEX_RESULT, D2
+                        LSL.L   #8, D2
+                        LSL.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
+                        
+                        MOVE.W  HEX_RESULT, D2
+                        LSL.L   D7, D2
+                        LSL.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
+                        
+                        CLR.L   D2
+                        RTS    
+                                
+HEXNUMBER_DETECTOR
+                        CMP.B   #$09,D2
+                        BLE     IS_NUMBER
+                        BRA     IS_LETTER
+                        
+IS_NUMBER
+                        ADDI.W  #$30, D2
+                        BRA     PRINT_HEXNUMBER_LOOP
+                        
+IS_LETTER               
+                        ADDI.W  #$37, D2
+                        BRA     PRINT_HEXNUMBER_LOOP
+
+PRINT_HEXNUMBER_LOOP
+                        CMP.B   #$30,D2
+                        BEQ     ZERO
+                        
+                        CMP.B   #$31,D2
+                        BEQ     ONE
+                        
+                        CMP.B   #$32,D2
+                        BEQ     TWO
+                        
+                        CMP.B   #$33,D2
+                        BEQ     THREE
+                        
+                        CMP.B   #$34,D2
+                        BEQ     FOUR
+                        
+                        CMP.B   #$35,D2
+                        BEQ     FIVE
+                        
+                        CMP.B   #$36,D2
+                        BEQ     SIX
+                        
+                        CMP.B   #$37,D2
+                        BEQ     SEVEN
+                        
+                        CMP.B   #$38,D2
+                        BEQ     EIGHT
+                        
+                        CMP.B   #$39,D2
+                        BEQ     NINE
+                        
+                        CMP.B   #$41,D2
+                        BEQ     A
+                        
+                        CMP.B   #$42,D2
+                        BEQ     B
+                        
+                        CMP.B   #$43,D2
+                        BEQ     C
+                        
+                        CMP.B   #$44,D2
+                        BEQ     D
+                        
+                        CMP.B   #$45,D2
+                        BEQ     E
+                        
+                        CMP.B   #$46,D2
+                        BEQ     F
+
+ZERO
+                        LEA     STRING_NUM0, A1
+                        BRA     PRINT_HEXNUMBER
+ONE
+                        LEA     STRING_NUM1, A1
+                        BRA     PRINT_HEXNUMBER
+TWO
+                        LEA     STRING_NUM2, A1
+                        BRA     PRINT_HEXNUMBER
+THREE
+                        LEA     STRING_NUM3, A1
+                        BRA     PRINT_HEXNUMBER
+FOUR
+                        LEA     STRING_NUM4, A1
+                        BRA     PRINT_HEXNUMBER
+FIVE
+                        LEA     STRING_NUM5, A1
+                        BRA     PRINT_HEXNUMBER
+SIX
+                        LEA     STRING_NUM6, A1
+                        BRA     PRINT_HEXNUMBER
+SEVEN
+                        LEA     STRING_NUM7, A1
+                        BRA     PRINT_HEXNUMBER
+EIGHT
+                        LEA     STRING_NUM8, A1
+                        BRA     PRINT_HEXNUMBER
+NINE
+                        LEA     STRING_NUM9, A1
+                        BRA     PRINT_HEXNUMBER
+A
+                        LEA     STRING_NUMA, A1
+                        BRA     PRINT_HEXNUMBER
+B
+                        LEA     STRING_NUMB, A1
+                        BRA     PRINT_HEXNUMBER
+C
+                        LEA     STRING_NUMC, A1
+                        BRA     PRINT_HEXNUMBER
+D
+                        LEA     STRING_NUMD, A1
+                        BRA     PRINT_HEXNUMBER
+E
+                        LEA     STRING_NUME, A1
+                        BRA     PRINT_HEXNUMBER
+F
+                        LEA     STRING_NUMF, A1
+                        BRA     PRINT_HEXNUMBER
+
+PRINT_HEXNUMBER
+                        MOVE.W  #14, D0
+                        TRAP    #15
+                        RTS
+
 DISSDONE    ;end of EAs use this call to end the line, instead of going back and renaming everything jsut use it for the loop
                         CMP.L   A5, A0
                         BEQ     PRINTENDING
