@@ -121,13 +121,14 @@ LOADSTARTADRDRESS       CLR     D0
                         CLR     D2
                         MOVE.L  ENDLOC, A0
                         MOVE.L  STARTLOC, A1
+                        MOVE.L  A1, A5
                         
-                        JSR     PRINTADDR
+LOOPMAIN                JSR     PRINTADDR
                         
                         ;LEA     ENDLOC, A0
                         MOVE.L  (A0),D0
                         ;LEA     STARTLOC, A1         ;Is this for current address?
-                        MOVE.L  (A1),D1
+                        MOVE.L  (A5),D1
                         ;MOVE.W  CURR_ADDRESS, A1  ;Is this for current address?(NEW+CHECK!!!!)James
 
                                                                                                      ; I think we need write some code for user input machine code!!!!
@@ -145,16 +146,25 @@ MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4,
                         BRA     OPCODETABLE
                         
 *-----------------ADDRESS PRINTINTG-------------------------                         
-PRINTADDR               MOVE.W  A1, D1
+PRINTADDR               MOVE.W  A1, D1              ;actual address
                         MOVE.B  #15, D0
                         MOVE.B  #16, D2
                         TRAP    #15
-                        LEA  SPACE_STRING, A1
+                        LEA     SPACE_STRING, A1
                         MOVE.B  #14, D0
                         TRAP    #15
              
                         RTS    
-*-----------------------------------------------------------                         
+*-----------------------------------------------------------
+*-----------------LOOP STUFF-------------------------                         
+LOOPINC                 ADD.L   #4, A5 
+                        MOVE.B  #13, D0
+                        LEA     SPACE_STRING,A1
+                        TRAP    #15
+                        
+                        BRA     LOOPMAIN                   
+*-----------------------------------------------------------
+                         
                         
 *-----------------OP CODE TABLE COMPARE-------------------------                           
 OPCODETABLE             CMP.B   #%1001,D2
@@ -1308,8 +1318,11 @@ DIRECTION_DETECTOR
                         BEQ     PRINT_RIGHT
                         RTS
                         
-DISSDONE                ;end of EAs use this call to end the line, instead of going back and renaming everything jsut use it for the loop
-
+DISSDONE    ;end of EAs use this call to end the line, instead of going back and renaming everything jsut use it for the loop
+                        CMP.L   A5, A0
+                        BEQ     PRINTENDING
+                        BRA     LOOPINC
+                        
 PRINTENDING             LEA     RESTARTQUESTION, A1
                         MOVE.B  #18, D0
                         TRAP    #15
@@ -1418,7 +1431,7 @@ BYTE_STRING             DC.B    '.B',0
 WORD_STRING             DC.B    '.W',0
 LONG_STRING             DC.B    '.L',0
 
-INVALID_OPCODE_STRING   DC.B    'DATA $WYYZ',0
+INVALID_OPCODE_STRING   DC.B    'DATA $WXYZ$',0
 CMP_OPCODE_STRING       DC.B    'CMP',0
 ADD_OPCODE_STRING       DC.B    'ADD',0
 ADDA_OPCODE_STRING      DC.B    'ADDA',0
