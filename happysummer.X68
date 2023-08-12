@@ -3,11 +3,13 @@
 * Written by : Yasmine Subbagh, Slava Arovina, Chin Cheung Lam
 * Date       : 
 *   Created:        06/27/23
-*   Last Modified:  08/10/23
+*   Last Modified:  08/11/23
 * Description: 68k Assembly Dissasembler
 *-----------------------------------------------------------
 
-START           ORG     $1000
+SIZE_OF_Dn              EQU     $2810
+
+START                   ORG     $1000
                 
 *------------input--------------
 PRINTINPUTMSG           LEA     WELCOME, A1
@@ -118,13 +120,13 @@ INVALIDADDRESS          LEA     INVADRMSG, A1
 *---------load each locaLR     
 LOADSTARTADRDRESS       CLR     D0
                         CLR     D1
-                        CLR     D2
+                        
                         CLR     D3      ;use for printing loop page limitier
                         MOVE.L  ENDLOC, A0
                         MOVE.L  STARTLOC, A1
                         MOVE.L  A1, A5
                         
-LOOPMAIN                JSR     PRINTADDR
+LOOPMAIN                JSR     PRINT_CURRENT_ADDR
                         
                         ;LEA     ENDLOC, A0
                         MOVE.L  (A0),D0
@@ -133,32 +135,48 @@ LOOPMAIN                JSR     PRINTADDR
                         ;MOVE.W  CURR_ADDRESS, A1  ;Is this for current address?(NEW+CHECK!!!!)James
 
                                                                                                      ; I think we need write some code for user input machine code!!!!
-DIASSEMBLE              MOVE.L  D1, D2                         
+DIASSEMBLE              
+                        ;MOVE.L  A5,CURR_ADDRESS
+                        ;MOVE.W  (A5)+, D2
+
+                        ;MOVE.L  D1, D2                         
                                  
-;CHECKFORNOP             CMP.W   #$4E71, D2
-;                        BEQ     OPNOP
-                        
-;CHECKFORRTS             CMP.W   #$4E75, D2
-;                        BEQ     OPRTS
 
-GETFIRST8               LSR.W   #4, D2
+GETFIRST8               ;LSR.W   #4, D2
 
-MOVEALLBITSOUT          LSR.W   #8, D2              ;clear all bits but first 4, moved into last byte
+MOVEALLBITSOUT          ;LSR.W   #8, D2              ;clear all bits but first 4, moved into last byte
+                        CLR.L   D5
                         BRA     OPCODETABLE
                         
 *-----------------ADDRESS PRINTINTG-------------------------                         
-PRINTADDR               MOVE.L  A5, D1              ;actual address
+PRINT_CURRENT_ADDR      MOVE.L  A5, D1              ;actual address
                         MOVE.B  #15, D0
                         MOVE.B  #16, D2
                         TRAP    #15
                         LEA     SPACE_STRING, A1
                         MOVE.B  #14, D0
                         TRAP    #15
+                        
+                        MOVE.L          A5, HEX_RESULT      
+                        JSR             STRINGCONVERTOR		
+    							
+                        MOVE.W          A5, HEX_RESULT   		
+                        JSR             STRINGCONVERTOR
+
              
-                        RTS    
+                        RTS 
+
+
+;PRINTADDR               MOVE.L          A5, HEX_RESULT      
+                        ;JSR             STRINGCONVERTOR		
+    							
+                        ;MOVE.W          A5, HEX_RESULT   		
+                        ;JSR             STRINGCONVERTOR
+             
+                        ;RTS    
 *-----------------------------------------------------------
 *-----------------LOOP STUFF-------------------------                         
-LOOPINC                 ADD.L   #16, A5      ;inc address
+LOOPINC                 ADD.L   #8, A5      ;inc address
                         MOVE.B  #13, D0
                         LEA     SPACE_STRING,A1
                         TRAP    #15
@@ -182,7 +200,21 @@ WAITFORUSERENTER        LEA     LOADMOREENTER, A1
                         BRA     RETURNLOAD
                         
 *-----------------OP CODE TABLE COMPARE-------------------------                           
-OPCODETABLE             CMP.B   #%1001,D2
+OPCODETABLE             
+                        CLR     D2
+                        ;JSR     PRINTADDR
+
+                        JSR     PRINT_SPACE
+                        MOVE.L  A5,CURR_ADDRESS
+                        MOVE.W  (A5)+, D2
+                        
+                        MOVE.W  D2, HEX_RESULT
+                        LSR.W   #4, D2
+                        LSR.W   #4, D2
+                        LSR.W   #4, D2
+                        
+
+                        CMP.B   #%1001,D2
                         BEQ     OPSUB    
 
                         CMP.B   #%0100, D2
@@ -717,12 +749,12 @@ OPINVALID
 
 *---------------------------EA-------------------------------
 EAINVALID
-                        ;LEA     Dollar_sign, A1
-                        ;MOVE.B  #14, D0
-                        ;TRAP    #15
+                        LEA     Dollar_sign, A1
+                        MOVE.B  #14, D0
+                        TRAP    #15
                         
-                        ;MOVE.W  HEX_RESULT,D2
-                        ;JSR     HEXCONVERTOR
+                        MOVE.W  HEX_RESULT,D2
+                        JSR     STRINGCONVERTOR
                         
                         BRA     DISSDONE     ; NEED TO CHECK
                         
@@ -730,11 +762,11 @@ EAMOVEM               ;--------------------------------------------->NEED TO WOR
 
 
 EAADD
-                        CMP.B   #1, DESTINATION_MODE
+                        CMP.B   #1, D5
                         BEQ     EAADD_FIRSTDn
 
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     PRINT_COMMA
                         JSR     EATABLE_MODE
@@ -750,14 +782,14 @@ EAADD_FIRSTDn
                         JSR     PRINT_COMMA
                         
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     EATABLE_MODE
                         
                         BRA     DISSDONE
 EAADDA
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
@@ -779,7 +811,7 @@ FIX_OVERFLOW_ADDQ
                         JSR     PRINT_IMMEDIATE_SIGN
                         JSR     PRINT_COMMA
                         
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     EATABLE_MODE
                         BRA     DISSDONE
@@ -788,11 +820,11 @@ OVERFLOW_ADDQ
                         BRA     FIX_OVERFLOW_ADDQ
                         
 EA_SUB
-                        CMP.B   #1, DESTINATION_MODE
+                        CMP.B   #1, D5
                         BEQ     EASUB_FIRSTDn
 
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
@@ -807,14 +839,14 @@ EASUB_FIRSTDn
                         JSR     PRINT_COMMA
                         
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     EATABLE_MODE
                         
                         BRA     DISSDONE
                         
 EALEA
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
@@ -827,24 +859,24 @@ EANOP_RST
                         BRA     DISSDONE
                         
 EANOT_JSR               
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         JSR     EATABLE_MODE
                         
                         BRA     DISSDONE
                         
 EALSL_LSR_ASL_ASR_ROL_ROR
-                        MOVE.W  SOURCE_MODE, D6
-                        LSR     #2, D6
+                        MOVE.W  SOURCE_MODE, D2
+                        LSR     #2, D2
                         
-                        CMP.B   #0, D6
+                        CMP.B   #0, D2
                         BEQ     SHIFT_IMMEDIATE
                         
-                        MOVE.W  DESTINATION_REGISTER, D7
+                        MOVE.W  DESTINATION_REGISTER, D6
                         JSR     PRINTDn_MODE
                         JSR     PRINT_COMMA
                         
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_REGISTER, D6
                         JSR     PRINTDn_MODE
                         BRA     DISSDONE
 
@@ -860,7 +892,7 @@ FIX_OVERFLOW_SHIFT      LEA     Hash_sign, A1
                         JSR     PRINT_IMMEDIATE_SIGN
                         JSR     PRINT_COMMA
                         
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_REGISTER, D6
                         JSR     EATABLE_MODE
                         BRA     DISSDONE
                               
@@ -870,73 +902,73 @@ OVERFLOWSHIFT_COUNT
                         
 EASHIFT_ADDRESS
                         MOVE.W  SOURCE_MODE, D5
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_REGISTER, D6
                         JSR     EATABLE_MODE
                         BRA     DISSDONE
 
 EACMP
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_MODE, D1
+                        MOVE.W  SOURCE_REGISTER, D6
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
                         
-                        MOVE.W  DESTINATION_REGISTER, D7
+                        MOVE.W  DESTINATION_REGISTER, D6
                         JSR     PRINTDn_MODE
                         BRA     DISSDONE
                         
 EAAND_OR
-                        CMP.B   #1, DESTINATION_MODE
+                        CMP.B   #1, D5
                         BEQ     EAAND_OR_FIRSTDn
                         
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_MODE, D1
+                        MOVE.W  SOURCE_REGISTER, D6
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
                         
-                        MOVE.W  DESTINATION_REGISTER, D7
+                        MOVE.W  DESTINATION_REGISTER, D6
                         JSR     PRINTDn_MODE
                         BRA     DISSDONE
 
 EAAND_OR_FIRSTDn
-                        MOVE.W  DESTINATION_REGISTER, D7
+                        MOVE.W  DESTINATION_REGISTER, D6
                         JSR     PRINTDn_MODE
                         JSR     PRINT_COMMA
                         
                         MOVE.W  DESTINATION_MODE, SIZE_OF_Dn
-                        MOVE.W  SOURCE_MODE, D6
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_MODE, D1
+                        MOVE.W  SOURCE_REGISTER, D6
                         JSR     EATABLE_MODE
                         BRA     DISSDONE
 
 EAMOVEB
-                        MOVE.W  SOURCE_MODE, D6
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_MODE, D1
+                        MOVE.W  SOURCE_REGISTER, D6
                         MOVE.W  #%0001, SIZE_OF_Dn
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
                         
                         MOVE.W  DESTINATION_REGISTER, D6
-                        MOVE.W  DESTINATION_MODE, D7
+                        MOVE.W  DESTINATION_MODE, D1
                         JSR     EATABLE_MODE
                         BRA     DISSDONE
                         
 EAMOVEW
-                        MOVE.W  SOURCE_MODE, D6
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_MODE, D1
+                        MOVE.W  SOURCE_REGISTER, D6
                         MOVE.W  #%0011, SIZE_OF_Dn
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
                         
                         MOVE.W  DESTINATION_REGISTER, D6
-                        MOVE.W  DESTINATION_MODE, D7
+                        MOVE.W  DESTINATION_MODE, D1
                         JSR     EATABLE_MODE
                         BRA     DISSDONE
 
 EAMOVEAW
-                        MOVE.W  SOURCE_MODE, D6
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_MODE, D1
+                        MOVE.W  SOURCE_REGISTER, D6
                         MOVE.W  #%0011, SIZE_OF_Dn
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
@@ -946,20 +978,20 @@ EAMOVEAW
                         BRA     DISSDONE
 
 EAMOVEL
-                        MOVE.W  SOURCE_MODE, D6
+                        MOVE.W  SOURCE_MODE, D1
                         MOVE.W  SOURCE_REGISTER, D7
                         MOVE.W  #%0010, SIZE_OF_Dn
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
                         
                         MOVE.W  DESTINATION_REGISTER, D6
-                        MOVE.W  DESTINATION_MODE, D7
+                        MOVE.W  DESTINATION_MODE, D1
                         JSR     EATABLE_MODE
                         BRA     DISSDONE
 
 EAMOVEAL
-                        MOVE.W  SOURCE_MODE, D6
-                        MOVE.W  SOURCE_REGISTER, D7
+                        MOVE.W  SOURCE_MODE, D1
+                        MOVE.W  SOURCE_REGISTER, D6
                         MOVE.W  #%0010, SIZE_OF_Dn
                         JSR     EATABLE_MODE
                         JSR     PRINT_COMMA
@@ -985,27 +1017,27 @@ EAMOVEQ
                         JSR     DISSDONE
                         
 EABCC_BRA
-                        CLR.L   D5
-                        CLR.L   D6
-                        CLR.L   D7
-                        MOVE.W  HEX_RESULT, D7
-                        LSL.W   #8, D7
-                        LSR.W   #8, D7
-                        CMP.B   #$00, D7
+                        CLR.L   D4
+                        CLR.L   D2
+                        CLR.L   D1
+                        MOVE.W  HEX_RESULT, D1
+                        LSL.W   #8, D1
+                        LSR.W   #8, D1
+                        CMP.B   #$00, D1
                         BEQ     FOR16BITSBRA
-                        CMP.B   #$FF, D7
+                        CMP.B   #$FF, D1
                         BEQ     FOR32BITSBRA
-FORDISPLACE             CMP.B   #$0, D5
+FORDISPLACE             CMP.B   #$0, D4
                         BEQ     NEGATIVE8_CHECK
-                        CMP.B   #$1, D5
+                        CMP.B   #$1, D4
                         BEQ     NEGATIVE16_CHECK
-                        CMP.B   #$2, D5
+                        CMP.B   #$2, D4
                         BEQ     NEGATIVE32_CHECK                       
-DONEBCC_BRA             CMP.B   #1, D6
+DONEBCC_BRA             CMP.B   #1, D2
                         BNE     ADD_ONLY
                         
-                        SUB.L   D7, CURR_ADDRESS
-                        MOVE.L  CURR_ADDRESS, D7
+                        SUB.L   D1, CURR_ADDRESS
+                        MOVE.L  CURR_ADDRESS, D1
                         BRA     PRINT_FORBCC_BRA
                         
 ADD_ONLY                ADD.L   CURR_ADDRESS, D7     ; MOVE Branch address to D7
@@ -1018,37 +1050,37 @@ PRINT_FORBCC_BRA        LEA     Dollar_sign, A1
                         BRA     DISSDONE
                         
 FOR16BITSBRA
-                        MOVE.W  (A2)+, D7
-                        MOVE.B  #1, D5                  ; Flag
+                        MOVE.W  (A2)+, D1
+                        MOVE.B  #1, D4                  ; Flag
                         BRA     FORDISPLACE
                               
 FOR32BITSBRA                        
                         MOVE.W  (A2)+, D7
-                        MOVE.B  #2, D5                  ; Flag
+                        MOVE.B  #2, D4                  ; Flag
                         BRA     FORDISPLACE
 
 NEGATIVE8_CHECK
                         CMP.B   #$80, D7
                         BLT     DONEBCC_BRA
-                        MOVE.B  #1, D6
-                        NOT.B   D7
+                        MOVE.B  #1, D2
+                        NOT.B   D1
                         ADD.B   #%1, D7
                         BRA     DONEBCC_BRA
 
 NEGATIVE16_CHECK
                         CMP.W   #$8000, D7
                         BLT     DONEBCC_BRA
-                        MOVE.B  #1, D6
-                        NOT.B   D7
-                        ADD.B   #%1, D7
+                        MOVE.B  #1, D2
+                        NOT.B   D1
+                        ADD.B   #%1, D1
                         BRA     DONEBCC_BRA
                         
 NEGATIVE32_CHECK
-                        CMP.L   #$80000000, D7
+                        CMP.L   #$80000000, D1
                         BLT     DONEBCC_BRA
-                        MOVE.B  #1, D6
-                        NOT.B   D7
-                        ADD.B   #%1, D7
+                        MOVE.B  #1, D2
+                        NOT.B   D1
+                        ADD.B   #%1, D1
                         BRA     DONEBCC_BRA
 
 *---------------------------EA Table----------------------------
@@ -1178,12 +1210,12 @@ PRINTIMMEDIATE
                         BGE     IMMEDIATE_LONG              ; Immediate Long Size
                         BRA     IMMEDIATE_WORD              ; Immediate Word Size
                         
-IMMEDIATE_LONG          ADD.L   #16, D5    ;increment address to acomodate              
+IMMEDIATE_LONG                        
                         CLR.L   D1
                         MOVE.L  (A2)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
                         RTS 
-IMMEDIATE_WORD          ADD.L   #32, D5   ;increment address to acomodate               
+IMMEDIATE_WORD                        
                         CLR.L   D1
                         MOVE.L  (A2)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
@@ -1220,7 +1252,7 @@ PRINTABS_WORD
                         
 PRINT_TRAP
                         MOVEQ   #15, D0
-                        MOVEQ   #16, D4                     ; Display Data in Hex in D4
+                        MOVEQ   #16, D2                     ; Display Data in Hex in D4
                         TRAP    #15
                         RTS
 
@@ -1331,6 +1363,146 @@ DIRECTION_DETECTOR
 
                         CMP.B   #%001, D2
                         BEQ     PRINT_RIGHT
+                        RTS
+
+STRINGCONVERTOR
+                        MOVE.W  HEX_RESULT, D2
+                        MOVE.W  #12, D7
+                        LSR.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
+
+                        MOVE.W  HEX_RESULT, D2
+                        LSL.L   #4, D2
+                        LSL.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
+
+                        MOVE.W  HEX_RESULT, D2
+                        LSL.L   #8, D2
+                        LSL.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
+
+                        MOVE.W  HEX_RESULT, D2
+                        LSL.L   D7, D2
+                        LSL.W   D7, D2
+                        JSR     HEXNUMBER_DETECTOR
+
+                        CLR.L   D2
+                        RTS    
+
+HEXNUMBER_DETECTOR
+                        CMP.B   #$09,D2
+                        BLE     IS_NUMBER
+                        BRA     IS_LETTER
+
+IS_NUMBER
+                        ADDI.W  #$30, D2
+                        BRA     PRINT_HEXNUMBER_LOOP
+
+IS_LETTER               
+                        ADDI.W  #$37, D2
+                        BRA     PRINT_HEXNUMBER_LOOP
+
+PRINT_HEXNUMBER_LOOP
+                        CMP.B   #$30,D2
+                        BEQ     ZERO
+
+                        CMP.B   #$31,D2
+                        BEQ     ONE
+
+                        CMP.B   #$32,D2
+                        BEQ     TWO
+
+                        CMP.B   #$33,D2
+                        BEQ     THREE
+
+                        CMP.B   #$34,D2
+                        BEQ     FOUR
+
+                        CMP.B   #$35,D2
+                        BEQ     FIVE
+
+                        CMP.B   #$36,D2
+                        BEQ     SIX
+
+                        CMP.B   #$37,D2
+                        BEQ     SEVEN
+
+                        CMP.B   #$38,D2
+                        BEQ     EIGHT
+
+                        CMP.B   #$39,D2
+                        BEQ     NINE
+
+                        CMP.B   #$41,D2
+                        BEQ     A
+
+                        CMP.B   #$42,D2
+                        BEQ     B
+
+                        CMP.B   #$43,D2
+                        BEQ     C
+
+                        CMP.B   #$44,D2
+                        BEQ     D
+
+                        CMP.B   #$45,D2
+                        BEQ     E
+
+                        CMP.B   #$46,D2
+                        BEQ     F
+
+ZERO
+                        LEA     STRING_NUM0, A1
+                        BRA     PRINT_HEXNUMBER
+ONE
+                        LEA     STRING_NUM1, A1
+                        BRA     PRINT_HEXNUMBER
+TWO
+                        LEA     STRING_NUM2, A1
+                        BRA     PRINT_HEXNUMBER
+THREE
+                        LEA     STRING_NUM3, A1
+                        BRA     PRINT_HEXNUMBER
+FOUR
+                        LEA     STRING_NUM4, A1
+                        BRA     PRINT_HEXNUMBER
+FIVE
+                        LEA     STRING_NUM5, A1
+                        BRA     PRINT_HEXNUMBER
+SIX
+                        LEA     STRING_NUM6, A1
+                        BRA     PRINT_HEXNUMBER
+SEVEN
+                        LEA     STRING_NUM7, A1
+                        BRA     PRINT_HEXNUMBER
+EIGHT
+                        LEA     STRING_NUM8, A1
+                        BRA     PRINT_HEXNUMBER
+NINE
+                        LEA     STRING_NUM9, A1
+                        BRA     PRINT_HEXNUMBER
+A
+                        LEA     STRING_NUMA, A1
+                        BRA     PRINT_HEXNUMBER
+B
+                        LEA     STRING_NUMB, A1
+                        BRA     PRINT_HEXNUMBER
+C
+                        LEA     STRING_NUMC, A1
+                        BRA     PRINT_HEXNUMBER
+D
+                        LEA     STRING_NUMD, A1
+                        BRA     PRINT_HEXNUMBER
+E
+                        LEA     STRING_NUME, A1
+                        BRA     PRINT_HEXNUMBER
+F
+                        LEA     STRING_NUMF, A1
+                        BRA     PRINT_HEXNUMBER
+
+PRINT_HEXNUMBER
+                        MOVE.W  #14, D0
+                        TRAP    #15
                         RTS
                         
 DISSDONE    ;end of EAs use this call to end the line, instead of going back and renaming everything jsut use it for the loop
@@ -1516,7 +1688,7 @@ DESTINATION_REGISTER    DS.L    1    ; Longword of storage space for the Destina
 DESTINATION_MODE        DS.L    1    ; Longword of storage space for the Destination Mode
 SOURCE_MODE             DS.L    1    ; Longword of storage space for the Source Mode
 SOURCE_REGISTER         DS.L    1    ; Longword of storage space for the Source Register
-SIZE_OF_Dn
+;SIZE_OF_Dn
 
 CURR_ADDRESS            DS.L    1    ; Longword of storage space for the CURRENT_ADDRESS
 
@@ -1542,8 +1714,9 @@ DONE
 
 
 
-
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
