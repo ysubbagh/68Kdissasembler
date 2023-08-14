@@ -1487,7 +1487,7 @@ PRINT_HEXNUMBER
                         
 DISSDONE    ;end of EAs use this call to end the line, instead of going back and renaming everything jsut use it for the loop
                         CMP.L   A5, A0
-                        BEQ     PRINTENDING
+                        BLT     PRINTENDING
                         BRA     LOOPINC
                         
 PRINTENDING             LEA     RESTARTQUESTION, A1
@@ -1683,6 +1683,7 @@ HEXVALUE_ARRAY          DC.B    '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,10,11,12,
               
 DONE
                         END    START        ; last line of source
+
 
 
 *~Font name~Courier New~
