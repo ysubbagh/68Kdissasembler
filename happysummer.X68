@@ -3,7 +3,7 @@
 * Written by : Yasmine Subbagh, Slava Arovina, Chin Cheung Lam
 * Date       : 
 *   Created:        06/27/23
-*   Last Modified:  08/11/23
+*   Last Modified:  08/12/23
 * Description: 68k Assembly Dissasembler
 *-----------------------------------------------------------
 
@@ -174,7 +174,7 @@ PRINT_CURRENT_ADDR      MOVE.L  A5, D1              ;actual address
                         ;RTS    
 *-----------------------------------------------------------
 *-----------------LOOP STUFF-------------------------                         
-LOOPINC                 ADD.L   #8, A5      ;inc address
+LOOPINC                 ADD.L   #$4, A5      ;inc address
                         MOVE.B  #13, D0
                         LEA     SPACE_STRING,A1
                         TRAP    #15
@@ -1220,12 +1220,14 @@ PRINTIMMEDIATE
                         BGE     IMMEDIATE_LONG              ; Immediate Long Size
                         BRA     IMMEDIATE_WORD              ; Immediate Word Size
                         
-IMMEDIATE_LONG                        
+                        
+IMMEDIATE_LONG          ADD.L   #$4, D5           
                         CLR.L   D1
                         MOVE.L  (A5)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
                         RTS 
-IMMEDIATE_WORD                        
+                        
+IMMEDIATE_WORD          ADD.L   #$2, D5              
                         CLR.L   D1
                         MOVE.L  (A5)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
@@ -1239,7 +1241,8 @@ PRINT_IMMEDIATE_SIGN                                        ; $#
                         JSR     PRINT_TRAP
                         RTS     
 
-PRINTABS_LONG
+
+PRINTABS_LONG           ADD.L   #$4, D5
                         LEA     Dollar_sign, A1
                         MOVE.B  #14, D0
                         TRAP    #15
@@ -1249,7 +1252,8 @@ PRINTABS_LONG
                         JSR     PRINT_TRAP
                         CLR.L   D5
                         RTS
-PRINTABS_WORD                        
+                        
+PRINTABS_WORD           ADD.L   #$2, D5               
                         LEA     Dollar_sign, A1
                         MOVE.B  #14, D0
                         TRAP    #15
@@ -1694,7 +1698,12 @@ DONE
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~
+
+
+
+
+
+*~Font name~Courier New~
+*~Font size~10~
+*~Tab type~1~
 *~Tab size~4~
-
-
-
