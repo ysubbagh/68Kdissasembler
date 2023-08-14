@@ -3,10 +3,9 @@
 * Written by : Yasmine Subbagh, Slava Arovina, Chin Cheung Lam
 * Date       : 
 *   Created:        06/27/23
-*   Last Modified:  08/12/23
+*   Last Modified:  08/11/23
 * Description: 68k Assembly Dissasembler
 *-----------------------------------------------------------
-
 START                   ORG     $1000
                 
 *------------input--------------
@@ -14,8 +13,8 @@ PRINTINPUTMSG           LEA     WELCOME, A1
                         MOVE.B  #14, D0
                         TRAP    #15
                         LEA     STARTLOCMSG, A1
-                        TRAP    #15               
-                        MOVE.B  #2, D0                       
+                        TRAP    #15      
+                        MOVE.B  #2, D0
 INPUTSTART              LEA     INPUT_HEXSTR, A1
                         TRAP    #15
                         JSR     VALID_INPUT_SIZE              ; IF USER ACCIDENTALLY ENTER INVALID SIZE FOR THE INPUT (NEW)
@@ -174,7 +173,7 @@ PRINT_CURRENT_ADDR      MOVE.L  A5, D1              ;actual address
                         ;RTS    
 *-----------------------------------------------------------
 *-----------------LOOP STUFF-------------------------                         
-LOOPINC                 ADD.L   #$4, A5      ;inc address
+LOOPINC                 ADD.L   #4, A5      ;inc address
                         MOVE.B  #13, D0
                         LEA     SPACE_STRING,A1
                         TRAP    #15
@@ -1056,12 +1055,12 @@ PRINT_FORBCC_BRA        LEA     Dollar_sign, A1
                         BRA     DISSDONE
                         
 FOR16BITSBRA
-                        MOVE.W  (A2)+, D1
+                        MOVE.W  (A5)+, D1
                         MOVE.B  #1, D4                  ; Flag
                         BRA     FORDISPLACE
                               
 FOR32BITSBRA                        
-                        MOVE.W  (A2)+, D1
+                        MOVE.W  (A5)+, D1
                         MOVE.B  #2, D4                  ; Flag
                         BRA     FORDISPLACE
 
@@ -1091,31 +1090,31 @@ NEGATIVE32_CHECK
 
 *---------------------------EA Table----------------------------
 EATABLE_MODE
-                        CMP.B   #%0000, D6                  ; Data Register Direct
+                        CMP.B   #%000, D7                  ; Data Register Direct
                         BEQ     PRINTDn_MODE
                         
-                        CMP.B   #%0001, D6                  ; Address Register Direct
+                        CMP.B   #%001, D7                  ; Address Register Direct
                         BEQ     PRINTAn_MODE
                         
-                        CMP.B   #%0010, D6                  ; Address Register Indirect
+                        CMP.B   #%010, D7                  ; Address Register Indirect
                         BEQ     PRINTAn_MODE_INDIRECT
                         
-                        CMP.B   #%0011, D6                  ; Address Register Indirect With Post Increment
+                        CMP.B   #%011, D7                  ; Address Register Indirect With Post Increment
                         BEQ     PRINTPOST_INCREMENT
                         
-                        CMP.B   #%0100, D6                  ; Address Register Indirect With Pre Decrement
+                        CMP.B   #%100, D7                  ; Address Register Indirect With Pre Decrement
                         BEQ     PRINTPRE_DECREMENT
                         
-                        CMP.B   #%0100,D7                   ; Immediate
+                        CMP.B   #%100,D6                   ; Immediate
                         BEQ     PRINTIMMEDIATE
                         
-                        CMP.B   #%0001,D7                   ; Absolute Long Data
+                        CMP.B   #%000,D6                   ; Absolute Word Data
                         BEQ     PRINTABS_LONG
                         
-                        CMP.B   #%0000,D7                   ; Absolute Word Data
+                        CMP.B   #%001,D6                   ; Absolute Long Data
                         BEQ     PRINTABS_WORD
                         
-                        CMP.B   #%0111, D6
+                        CMP.B   #%111, D7
                         BNE     INVALID_DATA
                         
 INVALID_DATA            BRA     PRINTINVALID_EA
@@ -1213,21 +1212,21 @@ PRINTIMMEDIATE
                         MOVE.B  #14 , D0
                         TRAP    #15
                         
-                        CMP.W   #%0010, SIZE_OF_Dn
+                        CMP.W   #%010, SIZE_OF_Dn
                         BEQ     IMMEDIATE_LONG
                         
-                        CMP.W   #%0110, SIZE_OF_Dn
+                        CMP.W   #%110, SIZE_OF_Dn
                         BGE     IMMEDIATE_LONG              ; Immediate Long Size
                         BRA     IMMEDIATE_WORD              ; Immediate Word Size
                         
-                        
-IMMEDIATE_LONG          ADD.L   #$4, D5           
+IMMEDIATE_LONG                        
+                        ADD.L   #$4, D5
                         CLR.L   D1
                         MOVE.L  (A5)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
                         RTS 
-                        
-IMMEDIATE_WORD          ADD.L   #$2, D5              
+IMMEDIATE_WORD                        
+                        ADD.L   #$4, D5
                         CLR.L   D1
                         MOVE.L  (A5)+,D1                    
                         JSR     PRINT_IMMEDIATE_SIGN   
@@ -1241,24 +1240,24 @@ PRINT_IMMEDIATE_SIGN                                        ; $#
                         JSR     PRINT_TRAP
                         RTS     
 
-
-PRINTABS_LONG           ADD.L   #$4, D5
+PRINTABS_LONG
+                        ADD.L   #$4, D5
                         LEA     Dollar_sign, A1
                         MOVE.B  #14, D0
                         TRAP    #15
                         
-                        CLR.L   D5
+                        CLR.L   D1
                         MOVE.W  (A5)+, D1
                         JSR     PRINT_TRAP
                         CLR.L   D5
                         RTS
-                        
-PRINTABS_WORD           ADD.L   #$2, D5               
+PRINTABS_WORD                        
+                        ADD.L   #$4, D5
                         LEA     Dollar_sign, A1
                         MOVE.B  #14, D0
                         TRAP    #15
                         
-                        CLR.L   D5
+                        CLR.L   D1
                         MOVE.W  (A5)+, D1
                         JSR     PRINT_TRAP
                         CLR.L   D5
@@ -1684,23 +1683,6 @@ HEXVALUE_ARRAY          DC.B    '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,10,11,12,
               
 DONE
                         END    START        ; last line of source
-
-
-*~Font name~Courier New~
-*~Font size~10~
-*~Tab type~1~
-*~Tab size~4~
-
-
-
-
-
-*~Font name~Courier New~
-*~Font size~10~
-*~Tab type~1~
-
-
-
 
 
 *~Font name~Courier New~
